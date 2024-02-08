@@ -6,6 +6,7 @@ from tlacidlo import Tlacidlo
 from tlacidlo import TypTlacidla
 import time
 import random
+from backGround import BackGround
 
 RYCHLOST_POSUNU_KAMERY = 15
 SPAWN_SURADNICA_X_HRACA = -150
@@ -16,7 +17,7 @@ MAXIMALNY_POCET_KOPACOV = 6
 class Hra(arcade.Window):
     def __init__(self, sirka, vyska, title):
         super().__init__(sirka, vyska, title)
-        arcade.set_background_color(arcade.color.AMAZON)
+        arcade.set_background_color(arcade.color.WHITE)
 
         # Zoznamy jednotiek a veze
         self.zoznamHracovychJednotiek = []
@@ -75,6 +76,8 @@ class Hra(arcade.Window):
             [(5000, 200), (5100, 200), (5200, 200), (5300, 200)]
         ]
 
+        self.manazerPozadia = BackGround()
+
     def vytvorObjektyNaMape(self):
         self.vezaHraca = objekty.Veza(400, 500)
         self.vezaNepriatela = objekty.Veza(6000, 500, nepriatel=True)
@@ -88,6 +91,7 @@ class Hra(arcade.Window):
         self.zoznamLoziskZlataNepriatelovaStrana.append(objekty.ZlatoZdroj(5400, 150))
 
     def setup(self):
+
         self.vytvorTlacidla()
         self.vytvorObjektyNaMape()
 
@@ -108,11 +112,12 @@ class Hra(arcade.Window):
     def on_draw(self):
         self.clear()
         arcade.start_render()
-        #
-        self.kameraSprity.use()
 
+        self.kameraSprity.use()
+        self.manazerPozadia.vykresli()
         self.vezaHraca.getSprite().draw()
         self.vezaNepriatela.getSprite().draw()
+        self.manazerPozadia.vykresliTravuPriSochach()
 
         for zlato in self.zoznamLoziskZlataHracovaStrana:
             zlato.getSprite().draw()
@@ -141,6 +146,8 @@ class Hra(arcade.Window):
         self.posunKMysi()
         self.resetTlacidiel()
         #self.odstranMrtvehoVojakaZFormacie()
+
+        self.manazerPozadia.updatePolohyMesiaca(self.posunKamery)
 
     def on_mouse_motion(self, x, y, delta_x, delta_y):
         self.poziciaMyskyX = x

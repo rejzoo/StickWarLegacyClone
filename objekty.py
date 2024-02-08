@@ -7,9 +7,9 @@ class Veza(arcade.Sprite):
         self.suradnicaY = y
         self.zivotVeze = 2500
         if nepriatel:
-            self.sprite = arcade.Sprite("Prostredie/VezaNepriatel2.png", 0.7)
+            self.sprite = arcade.Sprite("Prostredie/Objekty/VezaNepriatel2.png", 0.7)
         else:
-            self.sprite = arcade.Sprite("Prostredie/VezaPriatel2.png", 0.28)
+            self.sprite = arcade.Sprite("Prostredie/Objekty/VezaPriatel2.png", 0.28)
         self.sprite.set_position(self.suradnicaX, self.suradnicaY)
 
     def jeVezaZnicena(self):
@@ -28,7 +28,7 @@ class ZlatoZdroj(arcade.Sprite):
         self.suradnicaX = x
         self.suradnicaY = y
         self.zivotyZlata = 160
-        self.sprite = arcade.Sprite("Prostredie/Zlato.png", 0.8)
+        self.sprite = arcade.Sprite("Prostredie/Objekty/Zlato.png", 0.8)
         self.sprite.set_position(self.suradnicaX, self.suradnicaY)
         self.suradnicaY += 50
         self.pocetKopacov = 0
