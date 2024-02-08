@@ -8,7 +8,7 @@ import time
 import random
 
 RYCHLOST_POSUNU_KAMERY = 15
-SPAWN_SURADNICA_X_HRACA = -100
+SPAWN_SURADNICA_X_HRACA = -150
 SPAWN_SURADNICA_X_NEPRIATELA = 6850
 MAXIMALNY_POCET_JEDNOTIEK = 22
 MAXIMALNY_POCET_KOPACOV = 6
@@ -149,7 +149,6 @@ class Hra(arcade.Window):
     #Pomocna metoda
     def updateLoziskZlata(self):
         for loziskoZlata in self.zoznamLoziskZlataHracovaStrana:
-            #loziskoZlata.vypisZivotyZlata()
             if loziskoZlata.jeZlatoVykopane():
                 self.zoznamLoziskZlataHracovaStrana.remove(loziskoZlata)
             for jednotkaHracova in self.zoznamHracovychJednotiek:
@@ -240,13 +239,9 @@ class Hra(arcade.Window):
         self.manazerGUI.add(arcade.gui.UIAnchorWidget(anchor_x="center", align_y=340, child=self.buttonPauza))
 
     def getPocetHracovychJednotiek(self):
-        pocet = 0
-        for jednotkaHrac in self.zoznamHracovychJednotiek:
-            pocet += 1
-        return pocet
+        return len(self.zoznamHracovychJednotiek)
 
     def pridajDoFormacie(self, novyVojak):
-        print("PRIDANIE DO FORMACIE")
         if novyVojak.nepriatel is False:
             for j in range(len(self.formaciaHracovychJednotiek[0]) - 1, -1, -1):  # Iterate over columns in reverse
                 for i in range(len(self.formaciaHracovychJednotiek)):  # Iterate over rows
@@ -294,7 +289,8 @@ class Hra(arcade.Window):
     def pridanieVojaka(self, typJednotky):
         if self.getPocetHracovychJednotiek() >= MAXIMALNY_POCET_JEDNOTIEK:
             return
-        if self.getPocetHracovychJednotiek() - self.getPocetKopacov() >= MAXIMALNY_POCET_JEDNOTIEK - MAXIMALNY_POCET_KOPACOV:
+        if (self.getPocetHracovychJednotiek() - self.getPocetKopacov() >= MAXIMALNY_POCET_JEDNOTIEK - MAXIMALNY_POCET_KOPACOV
+                and typJednotky != "Krompac"):
             return
         self.buttonKupKopiju.resetStlacene()
         self.buttonKupMec.resetStlacene()
@@ -324,7 +320,6 @@ class Hra(arcade.Window):
             self.pridajDoFormacie(pridanaJednotka)
         pridanaJednotka.nastavNovyRozkaz(self.aktualnyRozkaz)
 
-        print("PRIDANE")
         self.casStlacenia = time.time()
 
     def posunKameru(self, smerPosunutia):
