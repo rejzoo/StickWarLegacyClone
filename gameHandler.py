@@ -14,7 +14,6 @@ SPAWN_SURADNICA_X_NEPRIATELA = 6850
 MAXIMALNY_POCET_JEDNOTIEK = 22
 MAXIMALNY_POCET_KOPACOV = 6
 
-
 class Hra(arcade.Window):
     def __init__(self, sirka, vyska, title):
         super().__init__(sirka, vyska, title)
@@ -61,6 +60,49 @@ class Hra(arcade.Window):
         ]
 
         self.manazerPozadia = BackGround()
+
+    def vytvorTlacidla(self):
+        self.manazerGUI = arcade.gui.UIManager()
+        self.manazerGUI.enable()
+        buyTlacidla = arcade.gui.UIBoxLayout(vertical=False, space_between=10)
+        posunTlacidla = arcade.gui.UIBoxLayout(vertical=False, space_between=1402)
+        rozkazyTlacidla = arcade.gui.UIBoxLayout(vertical=False, space_between=10)
+
+        buttonKupKrompac = Tlacidlo(TypTlacidla.TLACIDLO_KROMPAC, self.pridanieVojaka)
+        buttonKupMec = Tlacidlo(TypTlacidla.TLACIDLO_MEC, self.pridanieVojaka)
+        buttonKupKopiju = Tlacidlo(TypTlacidla.TLACIDLO_KOPIJA, self.pridanieVojaka)
+        buyTlacidla.add(buttonKupKrompac)
+        buyTlacidla.add(buttonKupMec)
+        buyTlacidla.add(buttonKupKopiju)
+
+        buttonPosunVlavo = Tlacidlo(TypTlacidla.TLACIDLO_POSUN_VLAVO, self.posunKameru)
+        buttonPosunVpravo = Tlacidlo(TypTlacidla.TLACIDLO_POSUN_VPRAVO, self.posunKameru)
+        posunTlacidla.add(buttonPosunVlavo)
+        posunTlacidla.add(buttonPosunVpravo)
+
+        buttonUtok = Tlacidlo(TypTlacidla.TLACIDLO_UTOK, self.nastavenieRozkazov, tlacidloBezResetu=True)
+        buttonDeff = Tlacidlo(TypTlacidla.TLACIDLO_OBRANA, self.nastavenieRozkazov, tlacidloBezResetu=True)
+        buttonIdle = Tlacidlo(TypTlacidla.TLACIDLO_IDLE, self.nastavenieRozkazov, tlacidloBezResetu=True)
+        rozkazyTlacidla.add(buttonDeff)
+        rozkazyTlacidla.add(buttonIdle)
+        rozkazyTlacidla.add(buttonUtok)
+
+        buttonPauza = Tlacidlo(TypTlacidla.TLACIDLO_PAUZA, self.pauzniHru)
+
+        self.manazerGUI.add(arcade.gui.UIAnchorWidget(align_x=-660, align_y=340, child=buyTlacidla))
+        self.manazerGUI.add(arcade.gui.UIAnchorWidget(align_x=0, align_y=270, child=posunTlacidla))
+        self.manazerGUI.add(arcade.gui.UIAnchorWidget(align_x=658, align_y=340, child=rozkazyTlacidla))
+        self.manazerGUI.add(arcade.gui.UIAnchorWidget(anchor_x="center", align_y=340, child=buttonPauza))
+
+        self.zoznamTlacidiel.append(buttonKupKrompac)
+        self.zoznamTlacidiel.append(buttonKupMec)
+        self.zoznamTlacidiel.append(buttonKupKopiju)
+        self.zoznamTlacidiel.append(buttonPosunVlavo)
+        self.zoznamTlacidiel.append(buttonPosunVpravo)
+        self.zoznamTlacidiel.append(buttonPauza)
+        self.zoznamTlacidiel.append(buttonUtok)
+        self.zoznamTlacidiel.append(buttonDeff)
+        self.zoznamTlacidiel.append(buttonIdle)
 
     def vytvorObjektyNaMape(self):
         self.vezaHraca = objekty.Veza(400, 500)
@@ -132,7 +174,7 @@ class Hra(arcade.Window):
         self.skontrolujPocetDovezenychVozikovZlata()
 
         # kamera
-        self.posunKMysi()
+        self.posunKameryVlavoVpravo()
 
         self.manazerPozadia.updatePolohyMesiaca(self.posunKamery)
         self.updateTlacidiel()
@@ -170,8 +212,7 @@ class Hra(arcade.Window):
             if isinstance(jednotkaHracova, jednotka.Kopac):
                 jednotkaHracova.updateKopaca(delta_time)
             else:
-                jednotkaHracova.updateVojaka(delta_time, self.zoznamHracovychJednotiek, self.zoznamNepriatelJednotiek,
-                                             self.vezaHraca, self.vezaNepriatela)
+                jednotkaHracova.updateVojaka(delta_time, self.zoznamNepriatelJednotiek, self.vezaNepriatela)
 
         for jednotkaNepriatel in self.zoznamNepriatelJednotiek:
             if jednotkaNepriatel.mrtvy():
@@ -181,14 +222,13 @@ class Hra(arcade.Window):
             if isinstance(jednotkaNepriatel, jednotka.Kopac):
                 jednotkaNepriatel.updateKopaca(delta_time)
             else:
-                jednotkaNepriatel.updateVojaka(delta_time, self.zoznamHracovychJednotiek, self.zoznamNepriatelJednotiek,
-                                               self.vezaHraca, self.vezaNepriatela)
+                jednotkaNepriatel.updateVojaka(delta_time, self.zoznamHracovychJednotiek, self.vezaHraca)
 
     def updateTlacidiel(self):
         for tlacidlo in self.zoznamTlacidiel:
             tlacidlo.update(self.aktualnyRozkaz)
 
-    def posunKMysi(self):
+    def posunKameryVlavoVpravo(self):
         # VLAVO
         lavaHranica = 80
         pravaHranica = self.width - lavaHranica
@@ -203,49 +243,6 @@ class Hra(arcade.Window):
         # Vypocitanie novej X pozicie
         novaPozicia = (self.posunKamery * RYCHLOST_POSUNU_KAMERY), 0
         self.kameraSprity.move_to(novaPozicia)
-
-    def vytvorTlacidla(self):
-        self.manazerGUI = arcade.gui.UIManager()
-        self.manazerGUI.enable()
-        buyTlacidla = arcade.gui.UIBoxLayout(vertical=False, space_between=10)
-        posunTlacidla = arcade.gui.UIBoxLayout(vertical=False, space_between=1402)
-        rozkazyTlacidla = arcade.gui.UIBoxLayout(vertical=False, space_between=10)
-
-        buttonKupKrompac = Tlacidlo(TypTlacidla.TLACIDLO_KROMPAC, self.pridanieVojaka)
-        buttonKupMec = Tlacidlo(TypTlacidla.TLACIDLO_MEC, self.pridanieVojaka)
-        buttonKupKopiju = Tlacidlo(TypTlacidla.TLACIDLO_KOPIJA, self.pridanieVojaka)
-        buyTlacidla.add(buttonKupKrompac)
-        buyTlacidla.add(buttonKupMec)
-        buyTlacidla.add(buttonKupKopiju)
-
-        buttonPosunVlavo = Tlacidlo(TypTlacidla.TLACIDLO_POSUN_VLAVO, self.posunKameru)
-        buttonPosunVpravo = Tlacidlo(TypTlacidla.TLACIDLO_POSUN_VPRAVO, self.posunKameru)
-        posunTlacidla.add(buttonPosunVlavo)
-        posunTlacidla.add(buttonPosunVpravo)
-
-        buttonUtok = Tlacidlo(TypTlacidla.TLACIDLO_UTOK, self.nastavenieRozkazov, tlacidloBezResetu=True)
-        buttonDeff = Tlacidlo(TypTlacidla.TLACIDLO_OBRANA, self.nastavenieRozkazov, tlacidloBezResetu=True)
-        buttonIdle = Tlacidlo(TypTlacidla.TLACIDLO_IDLE, self.nastavenieRozkazov, tlacidloBezResetu=True)
-        rozkazyTlacidla.add(buttonDeff)
-        rozkazyTlacidla.add(buttonIdle)
-        rozkazyTlacidla.add(buttonUtok)
-
-        buttonPauza = Tlacidlo(TypTlacidla.TLACIDLO_PAUZA, self.pauzniHru)
-
-        self.manazerGUI.add(arcade.gui.UIAnchorWidget(align_x=-660, align_y=340, child=buyTlacidla))
-        self.manazerGUI.add(arcade.gui.UIAnchorWidget(align_x=0, align_y=270, child=posunTlacidla))
-        self.manazerGUI.add(arcade.gui.UIAnchorWidget(align_x=658, align_y=340, child=rozkazyTlacidla))
-        self.manazerGUI.add(arcade.gui.UIAnchorWidget(anchor_x="center", align_y=340, child=buttonPauza))
-
-        self.zoznamTlacidiel.append(buttonKupKrompac)
-        self.zoznamTlacidiel.append(buttonKupMec)
-        self.zoznamTlacidiel.append(buttonKupKopiju)
-        self.zoznamTlacidiel.append(buttonPosunVlavo)
-        self.zoznamTlacidiel.append(buttonPosunVpravo)
-        self.zoznamTlacidiel.append(buttonPauza)
-        self.zoznamTlacidiel.append(buttonUtok)
-        self.zoznamTlacidiel.append(buttonDeff)
-        self.zoznamTlacidiel.append(buttonIdle)
 
     def getPocetHracovychJednotiek(self):
         return len(self.zoznamHracovychJednotiek)

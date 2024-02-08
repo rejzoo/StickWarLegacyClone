@@ -29,6 +29,9 @@ ZIVOTY_KOPIJNIKA = 200
 ZIVOTY_MECIAR = 100
 ZIVOTY_KOPAC = 100
 
+SAFEZONA_HRACOVE_JEDNOTKY_X = 30
+SAFEZONA_NEPRIATEL_JEDNOTKY_X = 6400
+
 class AktualnyRozkaz(Enum):
     OBRANA = 1
     IDLE = 2
@@ -167,10 +170,17 @@ class Jednotka(arcade.Sprite):
             self.suradnicaX += self.rychlostPohybuJednotky * delta_time
             self.smerPohybuCharakteru = SMER_VPRAVO
 
-    def updateVojaka(self, delta_time, zoznamHracovychJednotiek, zoznamNepriatelJednotiek, vezaHraca, vezaNepriatela):
+    def updateVojaka(self, delta_time, zoznamJednotiek, veza):
         self.sprite.set_position(self.suradnicaX, self.suradnicaY)
         self.HPBar.updateHpBar(self.suradnicaX, self.suradnicaY, self.zivoty)
-        self.spravanieVojaka(delta_time, zoznamHracovychJednotiek, zoznamNepriatelJednotiek, vezaHraca, vezaNepriatela)
+        self.spravanieVojaka(delta_time, zoznamJednotiek, veza)
+
+    def nachadzaSaVojakVSafeZone(self):
+        if self.nepriatel and self.suradnicaX > SAFEZONA_NEPRIATEL_JEDNOTKY_X:
+            return True
+        if self.nepriatel != False and self.suradnicaX < SAFEZONA_HRACOVE_JEDNOTKY_X:
+            return True
+        return False
 
     def ObdrzPoskodenie(self, poskodenie):
         self.zivoty -= poskodenie
@@ -181,7 +191,7 @@ class Jednotka(arcade.Sprite):
     def getSprite(self):
         return self.sprite
 
-    def spravanieVojaka(self, delta_time, zoznamHracovychJednotiek, zoznamNepriatelJednotiek, vezaHraca, vezaNepriatela):
+    def spravanieVojaka(self, delta_time, zoznamJednotiek, veza):
         pass
 
 class Kopac(Jednotka):
@@ -301,7 +311,7 @@ class Vojak(Jednotka): # Dorobit cestovanie za cielom
         self.dosahUtoku = None
         self.casPoslednehoUtoku = time.time()
 
-    def spravanieVojaka(self, delta_time, zoznamHracovychJednotiek, zoznamNepriatelJednotiek, vezaHraca, vezaNepriatela):
+    def spravanieVojaka(self, delta_time, zoznamJednotiek, veza):
         if self.aktualnyRozkaz == AktualnyRozkaz.OBRANA:
             self.navratDoSafeZony(delta_time)
             self.naMieste = False
@@ -313,7 +323,7 @@ class Vojak(Jednotka): # Dorobit cestovanie za cielom
             if self.bojuje: # Dorobit to ze ak jednotka umrie tak bojuje = False a ak pride na vzdialenost utoku True
                 self.zautoc()
             else:
-                self.najdiCielPreUtok(zoznamHracovychJednotiek, zoznamNepriatelJednotiek, vezaHraca, vezaNepriatela)
+                self.najdiCielPreUtok(zoznamJednotiek, veza)
                 self.pohybKCielu(delta_time)
 
     def nastupJednotkuNaPoziciu(self, delta_time):
@@ -359,17 +369,11 @@ class Vojak(Jednotka): # Dorobit cestovanie za cielom
             self.casPoslednehoUtoku = time.time()
         self.bojuje = False
 
-    def najdiCielPreUtok(self, zoznamHracovychJednotiek, zoznamNepriatelJednotiek, vezaHraca, vezaNepriatela):
-        if self.nepriatel is False:
-            # Utok na nepriatela
-            self.najdiNajblizsiCiel(zoznamNepriatelJednotiek, vezaNepriatela)
-        else:
-            # Utok na hraca
-            self.najdiNajblizsiCiel(zoznamHracovychJednotiek, vezaHraca)
-
-    def najdiNajblizsiCiel(self, zoznamJednotiek, veza):
+    def najdiCielPreUtok(self, zoznamJednotiek, veza):
         najkratsiaVzdialenost = 500000
         for jednotka in zoznamJednotiek:
+            if jednotka.nachadzaSaVojakVSafeZone():
+                continue
             vypocitanaVzdialenost = self.vzdialenost(self.suradnicaX, self.suradnicaY, jednotka.suradnicaX, jednotka.suradnicaY)
             if vypocitanaVzdialenost < najkratsiaVzdialenost:
                 self.cielNaUtok = jednotka
@@ -423,8 +427,8 @@ class Meciar(Vojak):
         self.dosahUtoku = DOSAH_NA_UTOK_MECIAR
         self.poskodenie = MECIAR_POSKODENIE
 
-    def spravanieVojaka(self, delta_time, zoznamHracovychJednotiek, zoznamNepriatelJednotiek, vezaHraca, vezaNepriatela):
-        super().spravanieVojaka(delta_time, zoznamHracovychJednotiek, zoznamNepriatelJednotiek, vezaHraca, vezaNepriatela)
+    def spravanieVojaka(self, delta_time, zoznamJednotiek, veza):
+        super().spravanieVojaka(delta_time, zoznamJednotiek, veza)
 
     def udelPoskodenie(self, jednotka):
         super().udelPoskodenie(jednotka)
@@ -442,8 +446,8 @@ class Kopijnik(Vojak):
         self.HPBar.hp = self.zivoty
         self.HPBar.maxHp = self.zivoty
 
-    def spravanieVojaka(self, delta_time, zoznamHracovychJednotiek, zoznamNepriatelJednotiek, vezaHraca, vezaNepriatela):
-        super().spravanieVojaka(delta_time, zoznamHracovychJednotiek, zoznamNepriatelJednotiek, vezaHraca, vezaNepriatela)
+    def spravanieVojaka(self, delta_time, zoznamJednotiek, veza):
+        super().spravanieVojaka(delta_time, zoznamJednotiek, veza)
 
     def udelPoskodenie(self, jednotka):
         super().udelPoskodenie(jednotka)
