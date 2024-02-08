@@ -1,10 +1,9 @@
 import math
 import time
-
 import arcade
-from enum import Enum
-
 import objekty
+from enum import Enum
+from Healthbar import HealthBar
 
 AKTUALIZACIA_ZA_FRAME = 10
 SMER_VPRAVO = 0
@@ -62,6 +61,7 @@ class Jednotka(arcade.Sprite):
         self.nepriatel = nepriatel
         self.rychlostPohybuJednotky = 0
         self.naMieste = False
+        self.HPBar = HealthBar(self.suradnicaX, self.suradnicaY, self.zivoty)
 
     def nacitajAnimacie(self, typJednotky):
         self.zoznamTexturNaAnimaciu = []
@@ -169,6 +169,7 @@ class Jednotka(arcade.Sprite):
 
     def updateVojaka(self, delta_time, zoznamHracovychJednotiek, zoznamNepriatelJednotiek, vezaHraca, vezaNepriatela):
         self.sprite.set_position(self.suradnicaX, self.suradnicaY)
+        self.HPBar.updateHpBar(self.suradnicaX, self.suradnicaY, self.zivoty)
         self.spravanieVojaka(delta_time, zoznamHracovychJednotiek, zoznamNepriatelJednotiek, vezaHraca, vezaNepriatela)
 
     def ObdrzPoskodenie(self, poskodenie):
@@ -260,6 +261,7 @@ class Kopac(Jednotka):
             self.aktualnyRozkaz = AktualnyRozkaz.IDLE
             self.cestujZaZlatom(delta_time)
         self.sprite.set_position(self.suradnicaX, self.suradnicaY)
+        self.HPBar.updateHpBar(self.suradnicaX, self.suradnicaY, self.zivoty)
 
     def vypocitajZaokruhlenuHodnotuDovezenehoZlata(self):
         if self.pocetZlataVoVoziku < 5:
@@ -437,6 +439,8 @@ class Kopijnik(Vojak):
         self.zivoty = ZIVOTY_KOPIJNIKA
         self.dosahUtoku = DOSAH_NA_UTOK_KOPIJA
         self.poskodenie = KOPIJA_POSKODENIE
+        self.HPBar.hp = self.zivoty
+        self.HPBar.maxHp = self.zivoty
 
     def spravanieVojaka(self, delta_time, zoznamHracovychJednotiek, zoznamNepriatelJednotiek, vezaHraca, vezaNepriatela):
         super().spravanieVojaka(delta_time, zoznamHracovychJednotiek, zoznamNepriatelJednotiek, vezaHraca, vezaNepriatela)

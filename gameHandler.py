@@ -14,6 +14,7 @@ SPAWN_SURADNICA_X_NEPRIATELA = 6850
 MAXIMALNY_POCET_JEDNOTIEK = 22
 MAXIMALNY_POCET_KOPACOV = 6
 
+
 class Hra(arcade.Window):
     def __init__(self, sirka, vyska, title):
         super().__init__(sirka, vyska, title)
@@ -83,8 +84,8 @@ class Hra(arcade.Window):
         self.vezaNepriatela = objekty.Veza(6000, 500, nepriatel=True)
 
         self.zoznamLoziskZlataHracovaStrana.append(objekty.ZlatoZdroj(600, 150))
-        #self.zoznamLoziskZlataHracovaStrana.append(objekty.ZlatoZdroj(830, 230))
-        #self.zoznamLoziskZlataHracovaStrana.append(objekty.ZlatoZdroj(1050, 190))
+        # self.zoznamLoziskZlataHracovaStrana.append(objekty.ZlatoZdroj(830, 230))
+        # self.zoznamLoziskZlataHracovaStrana.append(objekty.ZlatoZdroj(1050, 190))
 
         self.zoznamLoziskZlataNepriatelovaStrana.append(objekty.ZlatoZdroj(5800, 200))
         self.zoznamLoziskZlataNepriatelovaStrana.append(objekty.ZlatoZdroj(5600, 230))
@@ -100,7 +101,7 @@ class Hra(arcade.Window):
         kopacHrac1 = jednotka.Kopac(SPAWN_SURADNICA_X_HRACA, 250)
         kopacHrac2 = jednotka.Kopac(SPAWN_SURADNICA_X_HRACA, 300)
         self.zoznamHracovychJednotiek.append(kopacHrac1)
-        #self.zoznamHracovychJednotiek.append(kopacHrac2)
+        # self.zoznamHracovychJednotiek.append(kopacHrac2)
 
         # Nepriatel
         kopacNepr1 = jednotka.Kopac(SPAWN_SURADNICA_X_NEPRIATELA, 350, True)
@@ -108,7 +109,7 @@ class Hra(arcade.Window):
         self.zoznamNepriatelJednotiek.append(kopacNepr1)
         self.zoznamNepriatelJednotiek.append(kopacNepr2)
 
-    #Vykreslovanie Spritov a textur
+    # Vykreslovanie Spritov a textur
     def on_draw(self):
         self.clear()
         arcade.start_render()
@@ -116,7 +117,9 @@ class Hra(arcade.Window):
         self.kameraSprity.use()
         self.manazerPozadia.vykresli()
         self.vezaHraca.getSprite().draw()
+        self.vezaHraca.HPBar.vykresli()
         self.vezaNepriatela.getSprite().draw()
+        self.vezaNepriatela.HPBar.vykresli()
         self.manazerPozadia.vykresliTravuPriSochach()
 
         for zlato in self.zoznamLoziskZlataHracovaStrana:
@@ -127,25 +130,27 @@ class Hra(arcade.Window):
 
         for priatel in self.zoznamHracovychJednotiek:
             priatel.getSprite().draw()
+            priatel.HPBar.vykresli()
 
         for nepriatel in self.zoznamNepriatelJednotiek:
             nepriatel.getSprite().draw()
+            nepriatel.HPBar.vykresli()
 
-        #Kamera
+        # Kamera
         self.camera_gui.use()
         self.debugPanel()
         self.manazerGUI.draw()
 
-    #Update
+    # Update
     def on_update(self, delta_time):
         self.updateLoziskZlata()
         self.updateJednotiek(delta_time)
         self.skontrolujPocetDovezenychVozikovZlata()
 
-        #kamera
+        # kamera
         self.posunKMysi()
         self.resetTlacidiel()
-        #self.odstranMrtvehoVojakaZFormacie()
+        # self.odstranMrtvehoVojakaZFormacie()
 
         self.manazerPozadia.updatePolohyMesiaca(self.posunKamery)
 
@@ -153,7 +158,7 @@ class Hra(arcade.Window):
         self.poziciaMyskyX = x
         self.poziciaMyskyY = y
 
-    #Pomocna metoda
+    # Pomocna metoda
     def updateLoziskZlata(self):
         for loziskoZlata in self.zoznamLoziskZlataHracovaStrana:
             if loziskoZlata.jeZlatoVykopane():
@@ -171,7 +176,7 @@ class Hra(arcade.Window):
                     if jednotkaNepriatelova.tazeneZlato is None:
                         loziskoZlata.pridajKopaca(jednotkaNepriatelova)
 
-    #Pomocna metoda
+    # Pomocna metoda
     def updateJednotiek(self, delta_time):
 
         for jednotkaHracova in self.zoznamHracovychJednotiek:
@@ -183,7 +188,7 @@ class Hra(arcade.Window):
                 jednotkaHracova.updateKopaca(delta_time)
             else:
                 jednotkaHracova.updateVojaka(delta_time, self.zoznamHracovychJednotiek, self.zoznamNepriatelJednotiek,
-                                                     self.vezaHraca, self.vezaNepriatela)
+                                             self.vezaHraca, self.vezaNepriatela)
 
         for jednotkaNepriatel in self.zoznamNepriatelJednotiek:
             if jednotkaNepriatel.mrtvy():
@@ -194,7 +199,7 @@ class Hra(arcade.Window):
                 jednotkaNepriatel.updateKopaca(delta_time)
             else:
                 jednotkaNepriatel.updateVojaka(delta_time, self.zoznamHracovychJednotiek, self.zoznamNepriatelJednotiek,
-                                                     self.vezaHraca, self.vezaNepriatela)
+                                               self.vezaHraca, self.vezaNepriatela)
 
     def posunKMysi(self):
         # VLAVO

@@ -1,5 +1,8 @@
 import arcade
 
+from Healthbar import HealthBar
+
+
 class Veza(arcade.Sprite):
     def __init__(self, x, y, nepriatel=False):
         super().__init__()
@@ -11,6 +14,7 @@ class Veza(arcade.Sprite):
         else:
             self.sprite = arcade.Sprite("Prostredie/Objekty/VezaPriatel2.png", 0.28)
         self.sprite.set_position(self.suradnicaX, self.suradnicaY)
+        self.HPBar = HealthBar(self.suradnicaX, self.suradnicaY, self.zivotVeze, width=300, height=25)
 
     def jeVezaZnicena(self):
         return True if self.zivotVeze <= 0 else False
@@ -20,7 +24,7 @@ class Veza(arcade.Sprite):
 
     def poskodVezu(self, poskodenie):
         self.zivotVeze -= poskodenie
-
+        self.HPBar.updateHpBar(self.suradnicaX, self.suradnicaY, self.zivotVeze)
 
 class ZlatoZdroj(arcade.Sprite):
     def __init__(self, x, y):
