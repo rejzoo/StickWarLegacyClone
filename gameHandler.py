@@ -38,24 +38,7 @@ class Hra(arcade.Window):
 
         # Zoznamy tlacidiel a manazer GUI
         self.manazerGUI = None
-        self.buyTlacidla = None
-        self.posunTlacidla = None
-        self.rozkazyTlacidla = None
-
-        # Tlacidla
-        self.buttonKupKrompac = None
-        self.buttonKupMec = None
-        self.buttonKupKopiju = None
-        self.buttonPosunVlavo = None
-        self.buttonPosunVpravo = None
-        self.buttonUtok = None
-        self.buttonDeff = None
-        self.buttonIdle = None
-        self.buttonPauza = None
-
-        # Cas pre reset tlacidiel stlacenych
-        self.resetovatTlacidla = False
-        self.casStlacenia = None
+        self.zoznamTlacidiel = []
 
         self.aktualnyRozkaz = jednotka.AktualnyRozkaz.IDLE
         self.pocetHracovhoZlata = 0
@@ -84,8 +67,8 @@ class Hra(arcade.Window):
         self.vezaNepriatela = objekty.Veza(6000, 500, nepriatel=True)
 
         self.zoznamLoziskZlataHracovaStrana.append(objekty.ZlatoZdroj(600, 150))
-        # self.zoznamLoziskZlataHracovaStrana.append(objekty.ZlatoZdroj(830, 230))
-        # self.zoznamLoziskZlataHracovaStrana.append(objekty.ZlatoZdroj(1050, 190))
+        self.zoznamLoziskZlataHracovaStrana.append(objekty.ZlatoZdroj(830, 230))
+        self.zoznamLoziskZlataHracovaStrana.append(objekty.ZlatoZdroj(1050, 190))
 
         self.zoznamLoziskZlataNepriatelovaStrana.append(objekty.ZlatoZdroj(5800, 200))
         self.zoznamLoziskZlataNepriatelovaStrana.append(objekty.ZlatoZdroj(5600, 230))
@@ -101,7 +84,7 @@ class Hra(arcade.Window):
         kopacHrac1 = jednotka.Kopac(SPAWN_SURADNICA_X_HRACA, 250)
         kopacHrac2 = jednotka.Kopac(SPAWN_SURADNICA_X_HRACA, 300)
         self.zoznamHracovychJednotiek.append(kopacHrac1)
-        # self.zoznamHracovychJednotiek.append(kopacHrac2)
+        self.zoznamHracovychJednotiek.append(kopacHrac2)
 
         # Nepriatel
         kopacNepr1 = jednotka.Kopac(SPAWN_SURADNICA_X_NEPRIATELA, 350, True)
@@ -145,14 +128,14 @@ class Hra(arcade.Window):
     def on_update(self, delta_time):
         self.updateLoziskZlata()
         self.updateJednotiek(delta_time)
+        # self.odstranMrtvehoVojakaZFormacie()
         self.skontrolujPocetDovezenychVozikovZlata()
 
         # kamera
         self.posunKMysi()
-        self.resetTlacidiel()
-        # self.odstranMrtvehoVojakaZFormacie()
 
         self.manazerPozadia.updatePolohyMesiaca(self.posunKamery)
+        self.updateTlacidiel()
 
     def on_mouse_motion(self, x, y, delta_x, delta_y):
         self.poziciaMyskyX = x
@@ -201,6 +184,10 @@ class Hra(arcade.Window):
                 jednotkaNepriatel.updateVojaka(delta_time, self.zoznamHracovychJednotiek, self.zoznamNepriatelJednotiek,
                                                self.vezaHraca, self.vezaNepriatela)
 
+    def updateTlacidiel(self):
+        for tlacidlo in self.zoznamTlacidiel:
+            tlacidlo.update(self.aktualnyRozkaz)
+
     def posunKMysi(self):
         # VLAVO
         lavaHranica = 80
@@ -220,35 +207,45 @@ class Hra(arcade.Window):
     def vytvorTlacidla(self):
         self.manazerGUI = arcade.gui.UIManager()
         self.manazerGUI.enable()
-        self.buyTlacidla = arcade.gui.UIBoxLayout(vertical=False, space_between=10)
-        self.posunTlacidla = arcade.gui.UIBoxLayout(vertical=False, space_between=1402)
-        self.rozkazyTlacidla = arcade.gui.UIBoxLayout(vertical=False, space_between=10)
+        buyTlacidla = arcade.gui.UIBoxLayout(vertical=False, space_between=10)
+        posunTlacidla = arcade.gui.UIBoxLayout(vertical=False, space_between=1402)
+        rozkazyTlacidla = arcade.gui.UIBoxLayout(vertical=False, space_between=10)
 
-        self.buttonKupKrompac = Tlacidlo(TypTlacidla.TLACIDLO_KROMPAC, self.pridanieVojaka)
-        self.buttonKupMec = Tlacidlo(TypTlacidla.TLACIDLO_MEC, self.pridanieVojaka)
-        self.buttonKupKopiju = Tlacidlo(TypTlacidla.TLACIDLO_KOPIJA, self.pridanieVojaka)
-        self.buyTlacidla.add(self.buttonKupKrompac)
-        self.buyTlacidla.add(self.buttonKupMec)
-        self.buyTlacidla.add(self.buttonKupKopiju)
+        buttonKupKrompac = Tlacidlo(TypTlacidla.TLACIDLO_KROMPAC, self.pridanieVojaka)
+        buttonKupMec = Tlacidlo(TypTlacidla.TLACIDLO_MEC, self.pridanieVojaka)
+        buttonKupKopiju = Tlacidlo(TypTlacidla.TLACIDLO_KOPIJA, self.pridanieVojaka)
+        buyTlacidla.add(buttonKupKrompac)
+        buyTlacidla.add(buttonKupMec)
+        buyTlacidla.add(buttonKupKopiju)
 
-        self.buttonPosunVlavo = Tlacidlo(TypTlacidla.TLACIDLO_POSUN_VLAVO, self.posunKameru)
-        self.buttonPosunVpravo = Tlacidlo(TypTlacidla.TLACIDLO_POSUN_VPRAVO, self.posunKameru)
-        self.posunTlacidla.add(self.buttonPosunVlavo)
-        self.posunTlacidla.add(self.buttonPosunVpravo)
+        buttonPosunVlavo = Tlacidlo(TypTlacidla.TLACIDLO_POSUN_VLAVO, self.posunKameru)
+        buttonPosunVpravo = Tlacidlo(TypTlacidla.TLACIDLO_POSUN_VPRAVO, self.posunKameru)
+        posunTlacidla.add(buttonPosunVlavo)
+        posunTlacidla.add(buttonPosunVpravo)
 
-        self.buttonUtok = Tlacidlo(TypTlacidla.TLACIDLO_UTOK, self.nastavenieRozkazov)
-        self.buttonDeff = Tlacidlo(TypTlacidla.TLACIDLO_OBRANA, self.nastavenieRozkazov)
-        self.buttonIdle = Tlacidlo(TypTlacidla.TLACIDLO_IDLE, self.nastavenieRozkazov)
-        self.rozkazyTlacidla.add(self.buttonDeff)
-        self.rozkazyTlacidla.add(self.buttonIdle)
-        self.rozkazyTlacidla.add(self.buttonUtok)
+        buttonUtok = Tlacidlo(TypTlacidla.TLACIDLO_UTOK, self.nastavenieRozkazov, tlacidloBezResetu=True)
+        buttonDeff = Tlacidlo(TypTlacidla.TLACIDLO_OBRANA, self.nastavenieRozkazov, tlacidloBezResetu=True)
+        buttonIdle = Tlacidlo(TypTlacidla.TLACIDLO_IDLE, self.nastavenieRozkazov, tlacidloBezResetu=True)
+        rozkazyTlacidla.add(buttonDeff)
+        rozkazyTlacidla.add(buttonIdle)
+        rozkazyTlacidla.add(buttonUtok)
 
-        self.buttonPauza = Tlacidlo(TypTlacidla.TLACIDLO_PAUZA, self.pauzniHru)
+        buttonPauza = Tlacidlo(TypTlacidla.TLACIDLO_PAUZA, self.pauzniHru)
 
-        self.manazerGUI.add(arcade.gui.UIAnchorWidget(align_x=-660, align_y=340, child=self.buyTlacidla))
-        self.manazerGUI.add(arcade.gui.UIAnchorWidget(align_x=0, align_y=270, child=self.posunTlacidla))
-        self.manazerGUI.add(arcade.gui.UIAnchorWidget(align_x=658, align_y=340, child=self.rozkazyTlacidla))
-        self.manazerGUI.add(arcade.gui.UIAnchorWidget(anchor_x="center", align_y=340, child=self.buttonPauza))
+        self.manazerGUI.add(arcade.gui.UIAnchorWidget(align_x=-660, align_y=340, child=buyTlacidla))
+        self.manazerGUI.add(arcade.gui.UIAnchorWidget(align_x=0, align_y=270, child=posunTlacidla))
+        self.manazerGUI.add(arcade.gui.UIAnchorWidget(align_x=658, align_y=340, child=rozkazyTlacidla))
+        self.manazerGUI.add(arcade.gui.UIAnchorWidget(anchor_x="center", align_y=340, child=buttonPauza))
+
+        self.zoznamTlacidiel.append(buttonKupKrompac)
+        self.zoznamTlacidiel.append(buttonKupMec)
+        self.zoznamTlacidiel.append(buttonKupKopiju)
+        self.zoznamTlacidiel.append(buttonPosunVlavo)
+        self.zoznamTlacidiel.append(buttonPosunVpravo)
+        self.zoznamTlacidiel.append(buttonPauza)
+        self.zoznamTlacidiel.append(buttonUtok)
+        self.zoznamTlacidiel.append(buttonDeff)
+        self.zoznamTlacidiel.append(buttonIdle)
 
     def getPocetHracovychJednotiek(self):
         return len(self.zoznamHracovychJednotiek)
@@ -304,9 +301,6 @@ class Hra(arcade.Window):
         if (self.getPocetHracovychJednotiek() - self.getPocetKopacov() >= MAXIMALNY_POCET_JEDNOTIEK - MAXIMALNY_POCET_KOPACOV
                 and typJednotky != "Krompac"):
             return
-        self.buttonKupKopiju.resetStlacene()
-        self.buttonKupMec.resetStlacene()
-        self.buttonKupKrompac.resetStlacene()
         suradnicaY = random.randint(200, 400)
         pridanaJednotka = None
         match typJednotky:
@@ -314,79 +308,38 @@ class Hra(arcade.Window):
                 if self.getPocetKopacov() < MAXIMALNY_POCET_KOPACOV:
                     pridanaJednotka = jednotka.Kopac(SPAWN_SURADNICA_X_HRACA, suradnicaY)
                     self.zoznamHracovychJednotiek.append(pridanaJednotka)
-                    self.buttonKupKrompac.setStlacene()
                 else:
                     return
 
             case "Mec":
                 pridanaJednotka = jednotka.Meciar(SPAWN_SURADNICA_X_HRACA, suradnicaY)
                 self.zoznamHracovychJednotiek.append(pridanaJednotka)
-                self.buttonKupMec.setStlacene()
 
             case "Kopija":
                 pridanaJednotka = jednotka.Kopijnik(SPAWN_SURADNICA_X_HRACA, suradnicaY)
                 self.zoznamHracovychJednotiek.append(pridanaJednotka)
-                self.buttonKupKopiju.setStlacene()
 
         if isinstance(pridanaJednotka, jednotka.Kopac) is False:
             self.pridajDoFormacie(pridanaJednotka)
         pridanaJednotka.nastavNovyRozkaz(self.aktualnyRozkaz)
 
-        self.casStlacenia = time.time()
-
     def posunKameru(self, smerPosunutia):
-        self.buttonPosunVlavo.resetStlacene()
-        self.buttonPosunVpravo.resetStlacene()
         match smerPosunutia:
             case "PosunVlavo":
                 self.posunKamery = -10
-                self.buttonPosunVlavo.setStlacene()
 
             case "PosunVpravo":
                 self.posunKamery = 335
-                self.buttonPosunVpravo.setStlacene()
-
-        self.casStlacenia = time.time()
 
     def nastavenieRozkazov(self, rozkaz):
-        self.buttonUtok.resetStlacene()
-        self.buttonDeff.resetStlacene()
-        self.buttonIdle.resetStlacene()
-        match rozkaz:
-            case jednotka.AktualnyRozkaz.UTOK:
-                self.buttonUtok.setStlacene()
-
-            case jednotka.AktualnyRozkaz.IDLE:
-                self.buttonIdle.setStlacene()
-
-            case jednotka.AktualnyRozkaz.OBRANA:
-                self.buttonDeff.setStlacene()
-
         self.aktualnyRozkaz = rozkaz
         for hracovaJednotka in self.zoznamHracovychJednotiek:
             hracovaJednotka.nastavNovyRozkaz(rozkaz)
 
     def pauzniHru(self, neniPotreba):
-        self.buttonPauza.setStlacene()
-        self.casStlacenia = time.time()
-
-    def resetTlacidiel(self):
-        if self.casStlacenia is None:
-            return
-
-        casAktualny = time.time()
-        vysledok = self.casStlacenia + 0.1
-        if self.resetovatTlacidla:
-            self.buttonPosunVlavo.resetStlacene()
-            self.buttonPosunVpravo.resetStlacene()
-            self.buttonKupKopiju.resetStlacene()
-            self.buttonKupMec.resetStlacene()
-            self.buttonKupKrompac.resetStlacene()
-            self.buttonPauza.resetStlacene()
-            self.resetovatTlacidla = False
-            self.casStlacenia = None
-        elif vysledok < casAktualny:
-            self.resetovatTlacidla = True
+        #self.buttonPauza.setStlacene()
+        #self.casStlacenia = time.time()
+        pass
 
     def getPocetKopacov(self):
         pocetKopacov = 0
