@@ -1,11 +1,12 @@
 import arcade
 import arcade.gui
+
+import Menu
 import jednotka
 import objekty
+import random
 from tlacidlo import Tlacidlo
 from tlacidlo import TypTlacidla
-import time
-import random
 from backGround import BackGround
 
 RYCHLOST_POSUNU_KAMERY = 15
@@ -14,9 +15,12 @@ SPAWN_SURADNICA_X_NEPRIATELA = 6850
 MAXIMALNY_POCET_JEDNOTIEK = 22
 MAXIMALNY_POCET_KOPACOV = 6
 
-class Hra(arcade.Window):
-    def __init__(self, sirka, vyska, title):
-        super().__init__(sirka, vyska, title)
+SIRKA_OBRAZOVKY_HRY = 1600
+VYSKA_OBRAZOVKY_HRY = 800
+
+class HraView(arcade.View):
+    def __init__(self):
+        super().__init__()
         arcade.set_background_color(arcade.color.WHITE)
 
         # Zoznamy jednotiek a veze
@@ -31,9 +35,9 @@ class Hra(arcade.Window):
         self.poziciaMyskyX = 0
         self.poziciaMyskyY = 0
         self.posunKamery = 0
-        self.kameraSprity = arcade.Camera(sirka, vyska)
+        self.kameraSprity = arcade.Camera(SIRKA_OBRAZOVKY_HRY, VYSKA_OBRAZOVKY_HRY)
         self.kameraSprity.move_to((0, 0), 1)
-        self.camera_gui = arcade.Camera(sirka, vyska)
+        self.camera_gui = arcade.Camera(SIRKA_OBRAZOVKY_HRY, VYSKA_OBRAZOVKY_HRY)
 
         # Zoznamy tlacidiel a manazer GUI
         self.manazerGUI = None
@@ -178,10 +182,19 @@ class Hra(arcade.Window):
 
         self.manazerPozadia.updatePolohyMesiaca(self.posunKamery)
         self.updateTlacidiel()
+        self.kontrolaZivotovVezi()
 
     def on_mouse_motion(self, x, y, delta_x, delta_y):
         self.poziciaMyskyX = x
         self.poziciaMyskyY = y
+
+    def on_hide_view(self):
+        pass
+
+    def on_show(self):
+        self.window.set_size(SIRKA_OBRAZOVKY_HRY, VYSKA_OBRAZOVKY_HRY)
+        arcade.set_viewport(0, SIRKA_OBRAZOVKY_HRY, 0, VYSKA_OBRAZOVKY_HRY)
+        self.window.center_window()
 
     # Pomocna metoda
     def updateLoziskZlata(self):
@@ -228,11 +241,19 @@ class Hra(arcade.Window):
         for tlacidlo in self.zoznamTlacidiel:
             tlacidlo.update(self.aktualnyRozkaz)
 
+    def kontrolaZivotovVezi(self):
+        if self.vezaHraca.jeVezaZnicena():
+            # Dorobit koniec okno
+            arcade.close_window()
+        if self.vezaNepriatela.jeVezaZnicena():
+            # Dorobit koniec okno
+            arcade.close_window()
+
     def posunKameryVlavoVpravo(self):
         # VLAVO
         lavaHranica = 80
-        pravaHranica = self.width - lavaHranica
-        hornaHranica = self.height - 200
+        pravaHranica = SIRKA_OBRAZOVKY_HRY - lavaHranica
+        hornaHranica = VYSKA_OBRAZOVKY_HRY - 200
         if self.poziciaMyskyX < lavaHranica and self.poziciaMyskyY < hornaHranica and self.posunKamery > -10:
             self.posunKamery -= 1
 
@@ -334,9 +355,7 @@ class Hra(arcade.Window):
             hracovaJednotka.nastavNovyRozkaz(rozkaz)
 
     def pauzniHru(self, neniPotreba):
-        #self.buttonPauza.setStlacene()
-        #self.casStlacenia = time.time()
-        pass
+        self.window.show_view(Menu.PauseMenu(self))
 
     def getPocetKopacov(self):
         pocetKopacov = 0
@@ -354,7 +373,9 @@ class Hra(arcade.Window):
         self.pocetHracovhoZlata += int(zlatoNaPridanie)
 
     def debugPanel(self):
-        arcade.draw_rectangle_filled(self.width // 2, 20, self.width, 40, arcade.color.ALMOND)
+        texturaPozadieTlacidiel = arcade.load_texture("TexturaMenus/spodnyPanel.png")
+        arcade.draw_lrwh_rectangle_textured(0, 0, SIRKA_OBRAZOVKY_HRY, 40, texture=texturaPozadieTlacidiel)
+        #arcade.draw_rectangle_filled(self.width // 2, 20, self.width, 40, arcade.color.ALMOND)
         text = (f"      Rychlost:           ({self.posunKamery:5.1f})"
                 f"      Scroll value:       ({self.posunKamery:5.1f})"
                 f"      Pozicia X Mys:      ({self.poziciaMyskyX:5.1f})"
