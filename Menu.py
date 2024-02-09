@@ -2,6 +2,9 @@ import arcade
 import arcade.gui
 from gameHandler import HraView
 
+SIRKA_OBRAZOVKY_MENU = 1000
+VYSKA_OBRAZOVKY_MENU = 460
+
 class StartMenu(arcade.View):
     def __init__(self):
         super().__init__()
@@ -34,6 +37,8 @@ class StartMenu(arcade.View):
 
     def on_show_view(self):
         self.manager.enable()
+        self.window.set_size(SIRKA_OBRAZOVKY_MENU, VYSKA_OBRAZOVKY_MENU)
+        self.window.center_window()
 
     def on_draw(self):
         self.clear()
@@ -43,8 +48,8 @@ class StartMenu(arcade.View):
         self.manager.draw()
 
 
-VYSKA_PAUSE_MENU = 500
-SIRKA_PAUSE_MENU = 500
+SIRKA_PAUSE_MENU = 1600
+VYSKA_PAUSE_MENU = 800
 
 class PauseMenu(arcade.View):
     def __init__(self, aktualnaHra):
@@ -52,16 +57,33 @@ class PauseMenu(arcade.View):
 
         self.manager = arcade.gui.UIManager()
         self.aktualnaHra = aktualnaHra
+        self.texturaTlacidlo = arcade.load_texture("TexturaMenus/menuTlacidlo.png")
+        self.texturaTlacidloStlacene = arcade.load_texture("TexturaMenus/menuTlacidloStlacene.png")
 
-        unpauseButton = arcade.gui.UIFlatButton(width=200, text="Resume")
+        unpauseButton = arcade.gui.UITextureButton(width=200, text="Resume", texture=self.texturaTlacidlo)
+        unpauseButton.texture_hovered = self.texturaTlacidloStlacene
+        menuButton = arcade.gui.UITextureButton(width=200, text="Main Menu", texture=self.texturaTlacidlo)
+        menuButton.texture_hovered = self.texturaTlacidloStlacene
+        quitButton = arcade.gui.UITextureButton(width=200, text="Quit Game", texture=self.texturaTlacidlo)
+        quitButton.texture_hovered = self.texturaTlacidloStlacene
 
         @unpauseButton.event("on_click")
         def on_click_startGame(event):
-            hra = HraView()
             self.window.show_view(self.aktualnaHra)
 
-        rozlozenie = arcade.gui.UIBoxLayout(vertical=True, space_between=10)
+        @menuButton.event("on_click")
+        def on_click_startGame(event):
+            mainMenu = StartMenu()
+            self.window.show_view(mainMenu)
+
+        @quitButton.event("on_click")
+        def on_click_startGame(event):
+            arcade.close_window()
+
+        rozlozenie = arcade.gui.UIBoxLayout(vertical=True, space_between=30)
         rozlozenie.add(unpauseButton)
+        rozlozenie.add(menuButton)
+        rozlozenie.add(quitButton)
         self.manager.add(arcade.gui.UIAnchorWidget(anchor_x="center", anchor_y="center", child=rozlozenie))
 
     def on_hide_view(self):
@@ -69,10 +91,11 @@ class PauseMenu(arcade.View):
 
     def on_show_view(self):
         self.manager.enable()
-        self.window.background_color = arcade.color.RED
         self.window.set_size(SIRKA_PAUSE_MENU, VYSKA_PAUSE_MENU)
+        arcade.set_viewport(0, SIRKA_PAUSE_MENU, 0, VYSKA_PAUSE_MENU)
         self.window.center_window()
 
     def on_draw(self):
         self.clear()
+        self.aktualnaHra.on_draw()
         self.manager.draw()
