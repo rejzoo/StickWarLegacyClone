@@ -1,6 +1,5 @@
 import arcade
 
-
 class HealthBar:
     def __init__(self, x, y, max_hp, width=40, height=6):
         self.healthBarOffsetY = 90
@@ -18,10 +17,13 @@ class HealthBar:
         self.hp = zivoty
 
     def vykresli(self):
-        #if self.hp == self.maxHp:
-        #    return
+        if self.hp == self.maxHp:
+            return
 
         ratio = self.hp / self.maxHp
-        arcade.draw_rectangle_filled(self.suradnicaX + self.healthBarOffsetX, self.suradnicaY + self.healthBarOffsetY, self.width, self.height, arcade.color.BLACK)
-        arcade.draw_rectangle_filled(self.suradnicaX + self.healthBarOffsetX, self.suradnicaY + self.healthBarOffsetY, (self.width - 5), self.height - 10, arcade.color.RED)
-        arcade.draw_rectangle_filled(self.suradnicaX + self.healthBarOffsetX, self.suradnicaY + self.healthBarOffsetY, (self.width - 5) * ratio, self.height - 10, arcade.color.GREEN)
+        arcade.draw_rectangle_filled(self.suradnicaX + self.healthBarOffsetX, self.suradnicaY + self.healthBarOffsetY,
+                                     self.width, self.height, arcade.color.BLACK)
+        arcade.draw_rectangle_filled(self.suradnicaX + self.healthBarOffsetX, self.suradnicaY + self.healthBarOffsetY,
+                                     (self.width - 5), self.height - 10, arcade.color.RED)
+        arcade.draw_rectangle_filled(self.suradnicaX + self.healthBarOffsetX, self.suradnicaY + self.healthBarOffsetY,
+                                     (self.width - 5) * ratio, self.height - 10, arcade.color.GREEN)

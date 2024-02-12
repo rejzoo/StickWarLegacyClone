@@ -1,3 +1,5 @@
+import time
+
 import arcade
 import arcade.gui
 
@@ -64,6 +66,7 @@ class HraView(arcade.View):
         ]
 
         self.manazerPozadia = BackGround()
+        self.casZapnutiaHry = time.time()
 
     def vytvorTlacidla(self):
         self.manazerGUI = arcade.gui.UIManager()
@@ -188,9 +191,6 @@ class HraView(arcade.View):
         self.poziciaMyskyX = x
         self.poziciaMyskyY = y
 
-    def on_hide_view(self):
-        pass
-
     def on_show(self):
         self.window.set_size(SIRKA_OBRAZOVKY_HRY, VYSKA_OBRAZOVKY_HRY)
         arcade.set_viewport(0, SIRKA_OBRAZOVKY_HRY, 0, VYSKA_OBRAZOVKY_HRY)
@@ -235,6 +235,7 @@ class HraView(arcade.View):
             if isinstance(jednotkaNepriatel, jednotka.Kopac):
                 jednotkaNepriatel.updateKopaca(delta_time)
             else:
+                print(jednotkaNepriatel.surXIDLE)
                 jednotkaNepriatel.updateVojaka(delta_time, self.zoznamHracovychJednotiek, self.vezaHraca)
 
     def updateTlacidiel(self):
@@ -243,11 +244,9 @@ class HraView(arcade.View):
 
     def kontrolaZivotovVezi(self):
         if self.vezaHraca.jeVezaZnicena():
-            # Dorobit koniec okno
-            arcade.close_window()
+            self.window.show_view(Menu.EndScreen("Pocitac", self.casZapnutiaHry))
         if self.vezaNepriatela.jeVezaZnicena():
-            # Dorobit koniec okno
-            arcade.close_window()
+            self.window.show_view(Menu.EndScreen("Hrac", self.casZapnutiaHry))
 
     def posunKameryVlavoVpravo(self):
         # VLAVO
@@ -321,6 +320,7 @@ class HraView(arcade.View):
             return
         suradnicaY = random.randint(200, 400)
         pridanaJednotka = None
+        pridanaJednotkaNepriatel = None
         match typJednotky:
             case "Krompac":
                 if self.getPocetKopacov() < MAXIMALNY_POCET_KOPACOV:
@@ -332,6 +332,9 @@ class HraView(arcade.View):
             case "Mec":
                 pridanaJednotka = jednotka.Meciar(SPAWN_SURADNICA_X_HRACA, suradnicaY)
                 self.zoznamHracovychJednotiek.append(pridanaJednotka)
+                # Test
+                pridanaJednotkaNepriatel = jednotka.Meciar(SPAWN_SURADNICA_X_NEPRIATELA, suradnicaY, True)
+                self.zoznamNepriatelJednotiek.append(pridanaJednotkaNepriatel)
 
             case "Kopija":
                 pridanaJednotka = jednotka.Kopijnik(SPAWN_SURADNICA_X_HRACA, suradnicaY)
@@ -339,6 +342,8 @@ class HraView(arcade.View):
 
         if isinstance(pridanaJednotka, jednotka.Kopac) is False:
             self.pridajDoFormacie(pridanaJednotka)
+            if pridanaJednotkaNepriatel is not None:
+                self.pridajDoFormacie(pridanaJednotkaNepriatel)
         pridanaJednotka.nastavNovyRozkaz(self.aktualnyRozkaz)
 
     def posunKameru(self, smerPosunutia):
@@ -375,7 +380,6 @@ class HraView(arcade.View):
     def debugPanel(self):
         texturaPozadieTlacidiel = arcade.load_texture("TexturaMenus/spodnyPanel.png")
         arcade.draw_lrwh_rectangle_textured(0, 0, SIRKA_OBRAZOVKY_HRY, 40, texture=texturaPozadieTlacidiel)
-        #arcade.draw_rectangle_filled(self.width // 2, 20, self.width, 40, arcade.color.ALMOND)
         text = (f"      Rychlost:           ({self.posunKamery:5.1f})"
                 f"      Scroll value:       ({self.posunKamery:5.1f})"
                 f"      Pozicia X Mys:      ({self.poziciaMyskyX:5.1f})"

@@ -67,10 +67,13 @@ class Jednotka(arcade.Sprite):
         self.HPBar = HealthBar(self.suradnicaX, self.suradnicaY, self.zivoty)
 
     def nacitajAnimacie(self, typJednotky):
+        priatelNepriatel = "Nepriatel" if self.nepriatel else "Hrac"
         self.zoznamTexturNaAnimaciu = []
         for i in range(POCET_TEXTUR):
-            texture = load_texture_pair(f"Animacie/{typJednotky}/{typJednotky}_p{i}.png")
+            texture = load_texture_pair(f"Animacie/{typJednotky}/{priatelNepriatel}/{typJednotky}_p{i}.png")
             self.zoznamTexturNaAnimaciu.append(texture)
+
+        self.sprite = arcade.Sprite(f"Animacie/{typJednotky}/{priatelNepriatel}/{typJednotky}_idle.png")
 
     def nastavNovyRozkaz(self, rozkaz):
         self.aktualnyRozkaz = rozkaz
@@ -95,10 +98,11 @@ class Jednotka(arcade.Sprite):
                 self.smerPohybuCharakteru = SMER_VPRAVO
 
     def updateAnimacie(self):
+        priatelNepriatel = "Nepriatel" if self.nepriatel else "Hrac"
         if (self.aktualnyRozkaz == AktualnyRozkaz.IDLE
                 and isinstance(self, Kopac) is not True
                 and self.naMieste):
-            textura = load_texture_pair(f"Animacie/{self.typJednotky}/{self.typJednotky}_idle.png")
+            textura = load_texture_pair(f"Animacie/{self.typJednotky}/{priatelNepriatel}/{self.typJednotky}_idle.png")
             if self.nepriatel:
                 self.sprite = textura[1]
             else:
@@ -106,7 +110,7 @@ class Jednotka(arcade.Sprite):
             return
 
         if self.aktualnyRozkaz == AktualnyRozkaz.TAZENIE:
-            textura = load_texture_pair(f"Animacie/{self.typJednotky}/{self.typJednotky}_idle.png")
+            textura = load_texture_pair(f"Animacie/{self.typJednotky}/{priatelNepriatel}/{self.typJednotky}_idle.png")
             if self.pravyKopac:
                 self.sprite = textura[1]
             else:
@@ -178,7 +182,7 @@ class Jednotka(arcade.Sprite):
     def nachadzaSaVojakVSafeZone(self):
         if self.nepriatel and self.suradnicaX > SAFEZONA_NEPRIATEL_JEDNOTKY_X:
             return True
-        if self.nepriatel != False and self.suradnicaX < SAFEZONA_HRACOVE_JEDNOTKY_X:
+        if self.nepriatel is not False and self.suradnicaX < SAFEZONA_HRACOVE_JEDNOTKY_X:
             return True
         return False
 
@@ -202,7 +206,6 @@ class Kopac(Jednotka):
         self.pocetZlataNaOdstranenieZLoziska = 0 #nepouziva sa zatial neviem este
         self.typJednotky = "Kopac"
         self.nacitajAnimacie(self.typJednotky)
-        self.sprite = arcade.Sprite("Animacie/Kopac/Kopac_idle.png")
         self.rychlostPohybuJednotky = RYCHLOST_POHYBU_KOPACA
         self.tazeneZlato = None
         self.pravyKopac = False
@@ -299,7 +302,7 @@ class Kopac(Jednotka):
         if self.pravyKopac is False and self.nepriatel and self.smerPohybuCharakteru is SMER_VLAVO:
             self.smerPohybuCharakteru = SMER_VPRAVO
 
-class Vojak(Jednotka): # Dorobit cestovanie za cielom
+class Vojak(Jednotka):
     def __init__(self, x, y, nepriatel=False, poskodenie=0,):
         super().__init__(x, y, nepriatel=nepriatel)
         self.poskodenie = poskodenie
@@ -320,7 +323,7 @@ class Vojak(Jednotka): # Dorobit cestovanie za cielom
                 self.naMieste = True
         elif self.aktualnyRozkaz == AktualnyRozkaz.UTOK:
             self.naMieste = False
-            if self.bojuje: # Dorobit to ze ak jednotka umrie tak bojuje = False a ak pride na vzdialenost utoku True
+            if self.bojuje:
                 self.zautoc()
             else:
                 self.najdiCielPreUtok(zoznamJednotiek, veza)
@@ -331,19 +334,20 @@ class Vojak(Jednotka): # Dorobit cestovanie za cielom
                 and self.surYIDLE + 10 > self.suradnicaY > self.surYIDLE - 10):
             return True
 
-        if self.nepriatel is False and self.suradnicaX < self.surXIDLE:
-            self.suradnicaX += self.rychlostPohybuJednotky * delta_time
-            self.smerPohybuCharakteru = SMER_VPRAVO
-        elif self.nepriatel is False and self.suradnicaX > self.surXIDLE:
-            self.suradnicaX -= self.rychlostPohybuJednotky * delta_time
-            self.smerPohybuCharakteru = SMER_VLAVO
-
-        if self.nepriatel and self.suradnicaX > self.surXIDLE:
-            self.suradnicaX -= self.rychlostPohybuJednotky * delta_time
-            self.smerPohybuCharakteru = SMER_VLAVO
-        elif self.nepriatel and self.suradnicaX < self.surXIDLE:
-            self.suradnicaX += self.rychlostPohybuJednotky * delta_time
-            self.smerPohybuCharakteru = SMER_VPRAVO
+        if self.suradnicaX < self.surXIDLE:
+            if self.nepriatel:
+                self.suradnicaX += self.rychlostPohybuJednotky * delta_time
+                self.smerPohybuCharakteru = SMER_VPRAVO
+            else:
+                self.suradnicaX += self.rychlostPohybuJednotky * delta_time
+                self.smerPohybuCharakteru = SMER_VPRAVO
+        elif self.suradnicaX > self.surXIDLE:
+            if self.nepriatel:
+                self.suradnicaX -= self.rychlostPohybuJednotky * delta_time
+                self.smerPohybuCharakteru = SMER_VLAVO
+            else:
+                self.suradnicaX -= self.rychlostPohybuJednotky * delta_time
+                self.smerPohybuCharakteru = SMER_VLAVO
 
         if self.surYIDLE + 10 > self.suradnicaY > self.surYIDLE - 10:
             return False
@@ -421,33 +425,19 @@ class Meciar(Vojak):
         super().__init__(x, y, nepriatel=nepriatel)
         self.typJednotky = "Meciar"
         self.nacitajAnimacie(self.typJednotky)
-        self.sprite = arcade.Sprite("Animacie/Meciar/Meciar_idle.png")
         self.rychlostPohybuJednotky = RYCHLOST_POHYBU_MECIARA
         self.zivoty = ZIVOTY_MECIAR
         self.dosahUtoku = DOSAH_NA_UTOK_MECIAR
         self.poskodenie = MECIAR_POSKODENIE
-
-    def spravanieVojaka(self, delta_time, zoznamJednotiek, veza):
-        super().spravanieVojaka(delta_time, zoznamJednotiek, veza)
-
-    def udelPoskodenie(self, jednotka):
-        super().udelPoskodenie(jednotka)
 
 class Kopijnik(Vojak):
     def __init__(self, x, y, nepriatel=False):
         super().__init__(x, y, nepriatel=nepriatel)
         self.typJednotky = "Kopijnik"
         self.nacitajAnimacie(self.typJednotky)
-        self.sprite = arcade.Sprite("Animacie/Kopijnik/Kopijnik_idle.png")
         self.rychlostPohybuJednotky = RYCHLOST_POHYBU_KOPIJNIKA
         self.zivoty = ZIVOTY_KOPIJNIKA
         self.dosahUtoku = DOSAH_NA_UTOK_KOPIJA
         self.poskodenie = KOPIJA_POSKODENIE
         self.HPBar.hp = self.zivoty
         self.HPBar.maxHp = self.zivoty
-
-    def spravanieVojaka(self, delta_time, zoznamJednotiek, veza):
-        super().spravanieVojaka(delta_time, zoznamJednotiek, veza)
-
-    def udelPoskodenie(self, jednotka):
-        super().udelPoskodenie(jednotka)
