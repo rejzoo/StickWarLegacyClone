@@ -54,14 +54,6 @@ class ZlatoZdroj(arcade.Sprite):
                 kopac.pravyKopac = True
             kopac.tazeneZlato = self
 
-    def updateStavuZlata(self):
-        zoznamMrtvychKopacov = []
-        for kopaci in self.zoznamKopacov:
-            if kopaci.mrtvy():
-                zoznamMrtvychKopacov.append(kopaci)
-
-        self.zoznamKopacov.remove(zoznamMrtvychKopacov)
-
     def jeZlatoVykopane(self):
         return True if self.zivotyZlata <= 0 else False
 
@@ -82,10 +74,7 @@ class ZlatoZdroj(arcade.Sprite):
             suradnicaY
         ]
 
-    def vypisZivotyZlata(self):
-        print(self.zivotyZlata)
-
-    def zmenZivotyZdrojaZlataO(self, pocet):
+    def zmenZivotyZdrojaZlata(self, pocet):
         self.zivotyZlata -= pocet
 
     def getZivotyZlata(self):

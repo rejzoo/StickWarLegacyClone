@@ -8,7 +8,8 @@ from Healthbar import HealthBar
 AKTUALIZACIA_ZA_FRAME = 10
 SMER_VPRAVO = 0
 SMER_VLAVO = 1
-POCET_TEXTUR = 5
+POCET_TEXTUR_POHYB = 5
+POCET_TEXTUR_AKCIA = 4
 CIELOVA_NAVRAT_SUR_X_HRAC = -300
 HRANICA_PRE_ODOVZDANIE_ZLATA_HRAC = 100
 CIELOVA_NAVRAT_SUR_X_NEPRIATEL = 6900
@@ -50,7 +51,8 @@ class Jednotka(arcade.Sprite):
         self.suradnicaX = x
         self.suradnicaY = y
         self.zivoty = 100
-        self.zoznamTexturNaAnimaciu = None
+        self.zoznamTexturNaAnimaciu = []
+        self.zoznamTexturNaAkciu = []
         self.sprite = None
         self.typJednotky = None
         self.aktualnyRozkaz = AktualnyRozkaz.IDLE
@@ -65,15 +67,29 @@ class Jednotka(arcade.Sprite):
         self.rychlostPohybuJednotky = 0
         self.naMieste = False
         self.HPBar = HealthBar(self.suradnicaX, self.suradnicaY, self.zivoty)
+        self.idleTextura = None
+        self.idleTextury = None
 
     def nacitajAnimacie(self, typJednotky):
         priatelNepriatel = "Nepriatel" if self.nepriatel else "Hrac"
-        self.zoznamTexturNaAnimaciu = []
-        for i in range(POCET_TEXTUR):
+        for i in range(POCET_TEXTUR_POHYB):
             texture = load_texture_pair(f"Animacie/{typJednotky}/{priatelNepriatel}/{typJednotky}_p{i}.png")
             self.zoznamTexturNaAnimaciu.append(texture)
 
-        self.sprite = arcade.Sprite(f"Animacie/{typJednotky}/{priatelNepriatel}/{typJednotky}_idle.png")
+        # Nemam textury pre Kopaca
+        if typJednotky != "Kopac":
+            for i in range(POCET_TEXTUR_AKCIA):
+                texture = load_texture_pair(f"Animacie/{typJednotky}/{priatelNepriatel}/{typJednotky}_attack{i}.png")
+                self.zoznamTexturNaAkciu.append(texture)
+
+        textury = load_texture_pair(f"Animacie/{typJednotky}/{priatelNepriatel}/{typJednotky}_idle.png")
+        self.idleTextury = textury
+        if self.nepriatel:
+            self.idleTextura = textury[1]
+        else:
+            self.idleTextura = textury[0]
+
+        self.sprite = self.idleTextura
 
     def nastavNovyRozkaz(self, rozkaz):
         self.aktualnyRozkaz = rozkaz
@@ -97,30 +113,22 @@ class Jednotka(arcade.Sprite):
             else:
                 self.smerPohybuCharakteru = SMER_VPRAVO
 
-    def updateAnimacie(self):
-        priatelNepriatel = "Nepriatel" if self.nepriatel else "Hrac"
-        if (self.aktualnyRozkaz == AktualnyRozkaz.IDLE
-                and isinstance(self, Kopac) is not True
-                and self.naMieste):
-            textura = load_texture_pair(f"Animacie/{self.typJednotky}/{priatelNepriatel}/{self.typJednotky}_idle.png")
-            if self.nepriatel:
-                self.sprite = textura[1]
-            else:
-                self.sprite = textura[0]
+    def updateAnimaciePohybu(self):
+        if self.aktualnyRozkaz == AktualnyRozkaz.IDLE and isinstance(self, Kopac) is not True and self.naMieste:
+            self.sprite = self.idleTextura
             return
 
-        if self.aktualnyRozkaz == AktualnyRozkaz.TAZENIE:
-            textura = load_texture_pair(f"Animacie/{self.typJednotky}/{priatelNepriatel}/{self.typJednotky}_idle.png")
+        if self.aktualnyRozkaz == AktualnyRozkaz.TAZENIE and isinstance(self, Kopac):
             if self.pravyKopac:
-                self.sprite = textura[1]
+                self.sprite = self.idleTextury[1]
             else:
-                self.sprite = textura[0]
+                self.sprite = self.idleTextury[0]
             return
 
         self.aktualnaTextura += self.posunTexturu
-        if self.aktualnaTextura > POCET_TEXTUR * AKTUALIZACIA_ZA_FRAME:
+        if self.aktualnaTextura > POCET_TEXTUR_POHYB * AKTUALIZACIA_ZA_FRAME:
             self.posunTexturu = -self.posunTexturu
-            self.aktualnaTextura = AKTUALIZACIA_ZA_FRAME * (POCET_TEXTUR - 1)
+            self.aktualnaTextura = AKTUALIZACIA_ZA_FRAME * (POCET_TEXTUR_POHYB - 1)
             return
         if self.aktualnaTextura == -1:
             self.posunTexturu = -self.posunTexturu
@@ -128,12 +136,13 @@ class Jednotka(arcade.Sprite):
             return
         frame = self.aktualnaTextura // AKTUALIZACIA_ZA_FRAME
         smer = self.smerPohybuCharakteru
-        if frame > POCET_TEXTUR - 1:
+        if frame > POCET_TEXTUR_POHYB - 1:
             return
         self.sprite = self.zoznamTexturNaAnimaciu[frame][smer]
         self.sprite.set_position(self.suradnicaX, self.suradnicaY)
 
-    def navratDoSafeZony(self, delta_time): # Vytiahnut logiku na odovzdavanie zlata do pomocnej metody ?
+    def navratDoSafeZony(self, delta_time):
+        self.updateAnimaciePohybu()
         if (CIELOVA_NAVRAT_SUR_X_HRAC + 1 > self.suradnicaX > CIELOVA_NAVRAT_SUR_X_HRAC - 1
                 and self.nepriatel is False):
             return
@@ -204,7 +213,6 @@ class Kopac(Jednotka):
         super().__init__(x, y, nepriatel=nepriatel)
         self.pocetDovezenehoZlata = 0
         self.pocetZlataVoVoziku = 0
-        self.pocetZlataNaOdstranenieZLoziska = 0 #nepouziva sa zatial neviem este
         self.typJednotky = "Kopac"
         self.nacitajAnimacie(self.typJednotky)
         self.rychlostPohybuJednotky = RYCHLOST_POHYBU_KOPACA
@@ -218,6 +226,7 @@ class Kopac(Jednotka):
             self.tazeneZlato = None
 
     def cestujZaZlatom(self, delta_time):
+        self.updateAnimaciePohybu()
         self.skontrolujStavZlata()
         if self.tazeneZlato is None:
             return
@@ -249,8 +258,6 @@ class Kopac(Jednotka):
 
         if self.pocetZlataVoVoziku < 80 and self.tazeneZlato.jeZlatoVykopane() is False:
             self.pocetZlataVoVoziku += 10 * delta_time
-
-        self.pocetZlataNaOdstranenieZLoziska = math.ceil(self.pocetZlataVoVoziku)
 
         if self.pocetZlataVoVoziku >= KAPACITA_VOZIKA:
             self.pocetZlataVoVoziku = 80
@@ -293,7 +300,7 @@ class Kopac(Jednotka):
         if self.odstraneneZlato:
             return
 
-        self.tazeneZlato.zmenZivotyZdrojaZlataO(self.vypocitajZaokruhlenuHodnotuDovezenehoZlata())
+        self.tazeneZlato.zmenZivotyZdrojaZlata(self.vypocitajZaokruhlenuHodnotuDovezenehoZlata())
         self.odstraneneZlato = True
 
     def smerAnimacie(self):
@@ -304,9 +311,9 @@ class Kopac(Jednotka):
             self.smerPohybuCharakteru = SMER_VPRAVO
 
 class Vojak(Jednotka):
-    def __init__(self, x, y, nepriatel=False, poskodenie=0,):
+    def __init__(self, x, y, nepriatel=False):
         super().__init__(x, y, nepriatel=nepriatel)
-        self.poskodenie = poskodenie
+        self.poskodenie = 0
         self.surXIDLE = 0
         self.surYIDLE = 0
         self.cielNaUtok = None
@@ -314,6 +321,7 @@ class Vojak(Jednotka):
         self.bojuje = False
         self.dosahUtoku = None
         self.casPoslednehoUtoku = time.time()
+        self.fazaAnimacieUtoku = 0
 
     def spravanieVojaka(self, delta_time, zoznamJednotiek, veza):
         if self.aktualnyRozkaz == AktualnyRozkaz.OBRANA:
@@ -331,24 +339,17 @@ class Vojak(Jednotka):
                 self.pohybKCielu(delta_time)
 
     def nastupJednotkuNaPoziciu(self, delta_time):
+        self.updateAnimaciePohybu()
         if (self.surXIDLE + 1 > self.suradnicaX > self.surXIDLE - 1
                 and self.surYIDLE + 10 > self.suradnicaY > self.surYIDLE - 10):
             return True
 
         if self.suradnicaX < self.surXIDLE:
-            if self.nepriatel:
-                self.suradnicaX += self.rychlostPohybuJednotky * delta_time
-                self.smerPohybuCharakteru = SMER_VPRAVO
-            else:
-                self.suradnicaX += self.rychlostPohybuJednotky * delta_time
-                self.smerPohybuCharakteru = SMER_VPRAVO
+            self.suradnicaX += self.rychlostPohybuJednotky * delta_time
+            self.smerPohybuCharakteru = SMER_VPRAVO
         elif self.suradnicaX > self.surXIDLE:
-            if self.nepriatel:
-                self.suradnicaX -= self.rychlostPohybuJednotky * delta_time
-                self.smerPohybuCharakteru = SMER_VLAVO
-            else:
-                self.suradnicaX -= self.rychlostPohybuJednotky * delta_time
-                self.smerPohybuCharakteru = SMER_VLAVO
+            self.suradnicaX -= self.rychlostPohybuJednotky * delta_time
+            self.smerPohybuCharakteru = SMER_VLAVO
 
         if self.surYIDLE + 10 > self.suradnicaY > self.surYIDLE - 10:
             return False
@@ -364,15 +365,18 @@ class Vojak(Jednotka):
 
     def zautoc(self):
         aktualnyCas = time.time()
-        if aktualnyCas - self.casPoslednehoUtoku >= 2:
+        self.spustiAnimaciuUtoku(aktualnyCas)
+        if aktualnyCas - self.casPoslednehoUtoku >= 1:
             if isinstance(self.cielNaUtok, objekty.Veza):
                 self.cielNaUtok.poskodVezu(self.poskodenie)
                 self.bojuje = False
                 self.casPoslednehoUtoku = time.time()
+                self.fazaAnimacieUtoku = 0
                 return
             self.udelPoskodenie(self.cielNaUtok)
             self.casPoslednehoUtoku = time.time()
-        self.bojuje = False
+            self.bojuje = False
+            self.fazaAnimacieUtoku = 0
 
     def najdiCielPreUtok(self, zoznamJednotiek, veza):
         najkratsiaVzdialenost = 500000
@@ -402,10 +406,12 @@ class Vojak(Jednotka):
             self.bojuje = True
             return
 
-        if self.cielNaUtok is not None and self.nepriatel is False and self.suradnicaX > self.cielNaUtok.suradnicaX:
+        self.updateAnimaciePohybu()
+
+        if self.cielNaUtok is not None and self.suradnicaX > self.cielNaUtok.suradnicaX:
             self.suradnicaX -= self.rychlostPohybuJednotky * delta_time
             self.smerPohybuCharakteru = SMER_VLAVO
-        elif self.cielNaUtok is not None and self.nepriatel is False and self.suradnicaX < self.cielNaUtok.suradnicaX:
+        elif self.cielNaUtok is not None and self.suradnicaX < self.cielNaUtok.suradnicaX:
             self.suradnicaX += self.rychlostPohybuJednotky * delta_time
             self.smerPohybuCharakteru = SMER_VPRAVO
 
@@ -416,10 +422,18 @@ class Vojak(Jednotka):
             elif self.suradnicaY > self.cielNaUtok.suradnicaY:
                 self.suradnicaY -= self.rychlostPohybuJednotky * delta_time
 
-        #if
-        #elif self.suradnicaX < CIELOVA_NAVRAT_SUR_X_NEPRIATEL and self.nepriatel:
-        #    self.suradnicaX += self.rychlostPohybuJednotky * delta_time
-        #    self.smerPohybuCharakteru = SMER_VPRAVO
+    def spustiAnimaciuUtoku(self, aktualnyCas):
+        if aktualnyCas - self.casPoslednehoUtoku >= 0.99 and self.fazaAnimacieUtoku == 2:
+            self.fazaAnimacieUtoku += 1
+        elif aktualnyCas - self.casPoslednehoUtoku >= 0.66 and self.fazaAnimacieUtoku == 1:
+            self.fazaAnimacieUtoku += 1
+        elif aktualnyCas - self.casPoslednehoUtoku >= 0.33 and self.fazaAnimacieUtoku == 0:
+            self.fazaAnimacieUtoku += 1
+
+        if self.suradnicaX - self.cielNaUtok.suradnicaX < 0:
+            self.sprite = self.zoznamTexturNaAkciu[self.fazaAnimacieUtoku][0]
+        else:
+            self.sprite = self.zoznamTexturNaAkciu[self.fazaAnimacieUtoku][1]
 
 class Meciar(Vojak):
     def __init__(self, x, y, nepriatel=False):

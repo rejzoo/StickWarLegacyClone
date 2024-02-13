@@ -158,6 +158,11 @@ class HraView(arcade.View):
         self.zoznamNepriatelJednotiek.append(kopacNepr1)
         self.zoznamNepriatelJednotiek.append(kopacNepr2)
 
+        #nepriatelTest = jednotka.Kopijnik(2000, 350, True)
+        #nepriatelTest.aktualnyRozkaz = jednotka.AktualnyRozkaz.UTOK
+
+        #self.zoznamNepriatelJednotiek.append(nepriatelTest)
+
     # Vykreslovanie Spritov a textur
     def on_draw(self):
         self.clear()
@@ -234,12 +239,10 @@ class HraView(arcade.View):
 
     # Pomocna metoda
     def updateJednotiek(self, delta_time):
-
         for jednotkaHracova in self.zoznamHracovychJednotiek:
             if jednotkaHracova.mrtvy():
                 self.zoznamHracovychJednotiek.remove(jednotkaHracova)
                 continue
-            jednotkaHracova.updateAnimacie()
             if isinstance(jednotkaHracova, jednotka.Kopac):
                 jednotkaHracova.updateKopaca(delta_time)
             else:
@@ -249,11 +252,9 @@ class HraView(arcade.View):
             if jednotkaNepriatel.mrtvy():
                 self.zoznamNepriatelJednotiek.remove(jednotkaNepriatel)
                 continue
-            jednotkaNepriatel.updateAnimacie()
             if isinstance(jednotkaNepriatel, jednotka.Kopac):
                 jednotkaNepriatel.updateKopaca(delta_time)
             else:
-                print(jednotkaNepriatel.surXIDLE)
                 jednotkaNepriatel.updateVojaka(delta_time, self.zoznamHracovychJednotiek, self.vezaHraca)
 
     def updateTlacidiel(self):
@@ -313,27 +314,6 @@ class HraView(arcade.View):
                 else:
                     continue
                 break
-
-    """
-    def odstranMrtvychZFormacie(self):
-        zoznamMrtvych = []
-        for riadok in self.formaciaHracovychJednotiek:
-            for vojak in riadok:
-                if vojak is not None:
-                    print(vojak.zivoty, end='\t')
-                    if vojak.mrtvy():
-                        zoznamMrtvych.append(vojak)
-                else:
-                    print("_", end='\t')
-            print()
-
-        for i in range(len(self.formaciaHracovychJednotiek)):
-            for j in range(len(self.formaciaHracovychJednotiek[0])):
-                vojak = self.formaciaHracovychJednotiek[i][j]
-                for mrtvyVojak in zoznamMrtvych:
-                    if vojak == mrtvyVojak:
-                        self.zoznamHracovychJednotiek[i][j] = None
-    """
 
     def pridanieVojaka(self, typJednotky, hracPridava=True):
         if self.getPocetHracovychJednotiek() >= MAXIMALNY_POCET_JEDNOTIEK:
@@ -518,8 +498,7 @@ class HraView(arcade.View):
         text = (
             f"      Zlato: {self.pocetHracovhoZlata}"
             f"      Jednotky: {self.getPocetHracovychJednotiek()}"
-            + " " * 80 +#105
-            f"      Cas: {round(time.time() - self.casZapnutiaHry, 2)}"
+            + " " * 105 +
             f"      Zlato: {self.pocetEnemyZlata}"
             f"      Jednotky: {self.getPocetEnemyJednotiek()}"
         )
