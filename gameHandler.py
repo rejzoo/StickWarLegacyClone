@@ -114,7 +114,7 @@ class HraView(arcade.View):
         buttonPauza = Tlacidlo(TypTlacidla.TLACIDLO_PAUZA, self.pauzniHru)
 
         self.manazerGUI.add(arcade.gui.UIAnchorWidget(align_x=-660, align_y=340, child=buyTlacidla))
-        self.manazerGUI.add(arcade.gui.UIAnchorWidget(align_x=0, align_y=270, child=posunTlacidla))
+        self.manazerGUI.add(arcade.gui.UIAnchorWidget(align_x=0, align_y=220, child=posunTlacidla))
         self.manazerGUI.add(arcade.gui.UIAnchorWidget(align_x=658, align_y=340, child=rozkazyTlacidla))
         self.manazerGUI.add(arcade.gui.UIAnchorWidget(anchor_x="center", align_y=340, child=buttonPauza))
 
@@ -187,6 +187,7 @@ class HraView(arcade.View):
 
         # Kamera
         self.camera_gui.use()
+        self.vykresliPocetVerbujucichJednotiek()
         self.debugPanel()
         self.manazerGUI.draw()
 
@@ -400,7 +401,6 @@ class HraView(arcade.View):
         aktualnyCas = time.time()
         if len(self.zoznamJednotiekNaPridanieHrac) != 0:
             if aktualnyCas - self.casSpawnuPoslednejJednotkyHrac >= self.casSpawnuJednotkyNaRade():
-                print("SPAWN")
                 jednotkaNaSpawn = self.zoznamJednotiekNaPridanieHrac[0]
                 self.zoznamJednotiekNaPridanieHrac.remove(jednotkaNaSpawn)
                 jednotkaNaSpawn.nastavNovyRozkaz(self.aktualnyRozkazHrac)
@@ -485,6 +485,32 @@ class HraView(arcade.View):
                 zlatoNaPridanieEnemy += int(kopac.pocetDovezenehoZlata)
                 kopac.pocetDovezenehoZlata = 0
         self.pocetEnemyZlata += int(zlatoNaPridanieEnemy)
+
+    def vykresliPocetVerbujucichJednotiek(self):
+        zoznamPoctuJednotiek = self.getPoctyJednotlivychJednotiekVoVerbovani()
+        if zoznamPoctuJednotiek[0] != 0:
+            arcade.draw_text(zoznamPoctuJednotiek[0], 58, 670, arcade.color.YELLOW, 20)
+        if zoznamPoctuJednotiek[1] != 0:
+            arcade.draw_text(zoznamPoctuJednotiek[1], 132, 670, arcade.color.YELLOW, 20)
+        if zoznamPoctuJednotiek[2] != 0:
+            arcade.draw_text(zoznamPoctuJednotiek[2], 205, 670, arcade.color.YELLOW, 20)
+
+    def getPoctyJednotlivychJednotiekVoVerbovani(self):
+        zoznamPoctuJednotiek = []
+        pocetKopacov = 0
+        pocetMeciarov = 0
+        pocetKopijnikov = 0
+        for jednotkaHrac in self.zoznamJednotiekNaPridanieHrac:
+            if isinstance(jednotkaHrac, jednotka.Kopac):
+                pocetKopacov += 1
+            if isinstance(jednotkaHrac, jednotka.Meciar):
+                pocetMeciarov += 1
+            if isinstance(jednotkaHrac, jednotka.Kopijnik):
+                pocetKopijnikov += 1
+        zoznamPoctuJednotiek.append(pocetKopacov)
+        zoznamPoctuJednotiek.append(pocetMeciarov)
+        zoznamPoctuJednotiek.append(pocetKopijnikov)
+        return zoznamPoctuJednotiek
 
     def debugPanel(self):
         texturaPozadieTlacidiel = arcade.load_texture("TexturaMenus/spodnyPanel.png")
