@@ -161,6 +161,7 @@ class Jednotka(arcade.Sprite):
                     and self.aktualnyGlobalnyRozkaz == AktualnyRozkaz.IDLE
                     or self.aktualnyGlobalnyRozkaz == AktualnyRozkaz.UTOK):
                 self.aktualnyRozkaz = AktualnyRozkaz.IDLE
+                self.pocetDovezenehoZlata += self.vypocitajZaokruhlenuHodnotuDovezenehoZlata()
                 self.pocetZlataVoVoziku = 0
                 return
             elif isinstance(self, Kopac) and self.aktualnyGlobalnyRozkaz == AktualnyRozkaz.OBRANA:

@@ -31,7 +31,7 @@ class ZlatoZdroj(arcade.Sprite):
         super().__init__()
         self.suradnicaX = x
         self.suradnicaY = y
-        self.zivotyZlata = 160
+        self.zivotyZlata = 10000
         self.sprite = arcade.Sprite("Prostredie/Objekty/Zlato.png", 0.8)
         self.sprite.set_position(self.suradnicaX, self.suradnicaY)
         self.suradnicaY += 50
