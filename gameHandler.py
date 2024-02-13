@@ -20,6 +20,14 @@ MAXIMALNY_POCET_KOPACOV = 6
 SIRKA_OBRAZOVKY_HRY = 1600
 VYSKA_OBRAZOVKY_HRY = 800
 
+CENA_KOPACA = 150
+CENA_MECIARA = 125
+CENA_KOPIJNIKA = 500
+
+DLZKA_SPAWNU_KOPACA = 2
+DLZKA_SPAWNU_MECIARA = 2
+DLZKA_SPAWNU_KOPIJNIKA = 3
+
 class HraView(arcade.View):
     def __init__(self):
         super().__init__()
@@ -45,8 +53,11 @@ class HraView(arcade.View):
         self.manazerGUI = None
         self.zoznamTlacidiel = []
 
-        self.aktualnyRozkaz = jednotka.AktualnyRozkaz.IDLE
-        self.pocetHracovhoZlata = 0
+        self.aktualnyRozkazHrac = jednotka.AktualnyRozkaz.IDLE
+        self.pocetHracovhoZlata = 100000
+
+        self.aktualnyRozkazEnemy = jednotka.AktualnyRozkaz.IDLE
+        self.pocetEnemyZlata = 0
 
         # Matice pre formacie pre IDLE rezim - obsahuje vojakov
         self.formaciaHracovychJednotiek = [[None for _ in range(4)] for _ in range(4)]
@@ -67,6 +78,12 @@ class HraView(arcade.View):
 
         self.manazerPozadia = BackGround()
         self.casZapnutiaHry = time.time()
+
+        self.zoznamJednotiekNaPridanieHrac = []
+        self.zoznamJednotiekNaPridanieEnemy = []
+
+        self.casSpawnuPoslednejJednotkyHrac = 0
+        self.casSpawnuPoslednejJednotkyEnemy = 0
 
     def vytvorTlacidla(self):
         self.manazerGUI = arcade.gui.UIManager()
@@ -177,8 +194,8 @@ class HraView(arcade.View):
     def on_update(self, delta_time):
         self.updateLoziskZlata()
         self.updateJednotiek(delta_time)
-        # self.odstranMrtvehoVojakaZFormacie()
         self.skontrolujPocetDovezenychVozikovZlata()
+        self.spawnujJednotky()
 
         # kamera
         self.posunKameryVlavoVpravo()
@@ -240,7 +257,7 @@ class HraView(arcade.View):
 
     def updateTlacidiel(self):
         for tlacidlo in self.zoznamTlacidiel:
-            tlacidlo.update(self.aktualnyRozkaz)
+            tlacidlo.update(self.aktualnyRozkazHrac)
 
     def kontrolaZivotovVezi(self):
         if self.vezaHraca.jeVezaZnicena():
@@ -265,34 +282,38 @@ class HraView(arcade.View):
         self.kameraSprity.move_to(novaPozicia)
 
     def getPocetHracovychJednotiek(self):
-        return len(self.zoznamHracovychJednotiek)
+        return len(self.zoznamHracovychJednotiek) + len(self.zoznamJednotiekNaPridanieHrac)
+
+    def getPocetEnemyJednotiek(self):
+        return len(self.zoznamNepriatelJednotiek) + len(self.zoznamJednotiekNaPridanieEnemy)
 
     def pridajDoFormacie(self, novyVojak):
         if novyVojak.nepriatel is False:
-            for j in range(len(self.formaciaHracovychJednotiek[0]) - 1, -1, -1):  # Iterate over columns in reverse
-                for i in range(len(self.formaciaHracovychJednotiek)):  # Iterate over rows
+            for j in range(len(self.formaciaHracovychJednotiek[0]) - 1, -1, -1):
+                for i in range(len(self.formaciaHracovychJednotiek)):
                     if self.formaciaHracovychJednotiek[i][j] is None:
                         self.formaciaHracovychJednotiek[i][j] = novyVojak
                         suradnicaXYFormacia = self.suradniceHracFormacia[i][j]
                         novyVojak.surXIDLE = suradnicaXYFormacia[0]
                         novyVojak.surYIDLE = suradnicaXYFormacia[1]
-                        break  # Stop iterating through rows after adding one soldier in the column
+                        break
                 else:
-                    continue  # Continue to the next iteration of the outer loop if soldier is not added
+                    continue
                 break
         else:
-            for j in range(len(self.formaciaNepriatelovychJednotiek[0]) - 1, -1, -1):  # Iterate over columns in reverse
-                for i in range(len(self.formaciaNepriatelovychJednotiek)):  # Iterate over rows
+            for j in range(len(self.formaciaNepriatelovychJednotiek[0]) - 1, -1, -1):
+                for i in range(len(self.formaciaNepriatelovychJednotiek)):
                     if self.formaciaNepriatelovychJednotiek[i][j] is None:
                         self.formaciaNepriatelovychJednotiek[i][j] = novyVojak
                         suradnicaXYFormacia = self.suradniceNeprFormacia[i][j]
                         novyVojak.surXIDLE = suradnicaXYFormacia[0]
                         novyVojak.surYIDLE = suradnicaXYFormacia[1]
-                        break  # Stop iterating through rows after adding one soldier in the column
+                        break
                 else:
-                    continue  # Continue to the next iteration of the outer loop if soldier is not added
+                    continue
                 break
 
+    """
     def odstranMrtvychZFormacie(self):
         zoznamMrtvych = []
         for riadok in self.formaciaHracovychJednotiek:
@@ -311,40 +332,109 @@ class HraView(arcade.View):
                 for mrtvyVojak in zoznamMrtvych:
                     if vojak == mrtvyVojak:
                         self.zoznamHracovychJednotiek[i][j] = None
+    """
 
-    def pridanieVojaka(self, typJednotky):
+    def pridanieVojaka(self, typJednotky, hracPridava=True):
         if self.getPocetHracovychJednotiek() >= MAXIMALNY_POCET_JEDNOTIEK:
             return
         if (self.getPocetHracovychJednotiek() - self.getPocetKopacov() >= MAXIMALNY_POCET_JEDNOTIEK - MAXIMALNY_POCET_KOPACOV
                 and typJednotky != "Krompac"):
             return
         suradnicaY = random.randint(200, 400)
-        pridanaJednotka = None
-        pridanaJednotkaNepriatel = None
+        jednotkaNaPridanie = None
         match typJednotky:
             case "Krompac":
-                if self.getPocetKopacov() < MAXIMALNY_POCET_KOPACOV:
-                    pridanaJednotka = jednotka.Kopac(SPAWN_SURADNICA_X_HRACA, suradnicaY)
-                    self.zoznamHracovychJednotiek.append(pridanaJednotka)
+                if hracPridava:
+                    if self.getPocetKopacov() < MAXIMALNY_POCET_KOPACOV:
+                        if self.pocetHracovhoZlata < CENA_KOPACA:
+                            return
+                        self.pocetHracovhoZlata -= CENA_KOPACA
+                        pridanaJednotka = jednotka.Kopac(SPAWN_SURADNICA_X_HRACA, suradnicaY)
+                        self.zapisCasSpawnuAkPrvyNaSpawn()
+                        self.zoznamJednotiekNaPridanieHrac.append(pridanaJednotka)
                 else:
-                    return
+                    if self.getPocetKopacov(hracovychKopacov=False) < MAXIMALNY_POCET_KOPACOV:
+                        if self.pocetEnemyZlata < CENA_KOPACA:
+                            return
+                        self.pocetEnemyZlata -= CENA_KOPACA
+                        pridanaJednotka = jednotka.Kopac(SPAWN_SURADNICA_X_NEPRIATELA, suradnicaY, True)
+                        self.zapisCasSpawnuAkPrvyNaSpawn(False)
+                        self.zoznamJednotiekNaPridanieEnemy.append(pridanaJednotka)
 
             case "Mec":
-                pridanaJednotka = jednotka.Meciar(SPAWN_SURADNICA_X_HRACA, suradnicaY)
-                self.zoznamHracovychJednotiek.append(pridanaJednotka)
-                # Test
-                pridanaJednotkaNepriatel = jednotka.Meciar(SPAWN_SURADNICA_X_NEPRIATELA, suradnicaY, True)
-                self.zoznamNepriatelJednotiek.append(pridanaJednotkaNepriatel)
+                if hracPridava:
+                    if self.pocetHracovhoZlata < CENA_MECIARA:
+                        return
+                    self.pocetHracovhoZlata -= CENA_MECIARA
+                    jednotkaNaPridanie = jednotka.Meciar(SPAWN_SURADNICA_X_HRACA, suradnicaY)
+                    self.zapisCasSpawnuAkPrvyNaSpawn()
+                    self.zoznamJednotiekNaPridanieHrac.append(jednotkaNaPridanie)
+                else:
+                    if self.pocetEnemyZlata < CENA_MECIARA:
+                        return
+                    self.pocetEnemyZlata -= CENA_MECIARA
+                    jednotkaNaPridanie = jednotka.Meciar(SPAWN_SURADNICA_X_NEPRIATELA, suradnicaY, True)
+                    self.zapisCasSpawnuAkPrvyNaSpawn(False)
+                    self.zoznamJednotiekNaPridanieEnemy.append(jednotkaNaPridanie)
 
             case "Kopija":
-                pridanaJednotka = jednotka.Kopijnik(SPAWN_SURADNICA_X_HRACA, suradnicaY)
-                self.zoznamHracovychJednotiek.append(pridanaJednotka)
+                if hracPridava:
+                    if self.pocetHracovhoZlata < CENA_KOPIJNIKA:
+                        return
+                    self.pocetHracovhoZlata -= CENA_KOPIJNIKA
+                    jednotkaNaPridanie = jednotka.Kopijnik(SPAWN_SURADNICA_X_HRACA, suradnicaY)
+                    self.zapisCasSpawnuAkPrvyNaSpawn()
+                    self.zoznamJednotiekNaPridanieHrac.append(jednotkaNaPridanie)
+                else:
+                    if self.pocetEnemyZlata < CENA_KOPIJNIKA:
+                        return
+                    self.pocetEnemyZlata -= CENA_KOPIJNIKA
+                    jednotkaNaPridanie = jednotka.Kopijnik(SPAWN_SURADNICA_X_NEPRIATELA, suradnicaY, True)
+                    self.zapisCasSpawnuAkPrvyNaSpawn(False)
+                    self.zoznamJednotiekNaPridanieEnemy.append(jednotkaNaPridanie)
 
-        if isinstance(pridanaJednotka, jednotka.Kopac) is False:
-            self.pridajDoFormacie(pridanaJednotka)
-            if pridanaJednotkaNepriatel is not None:
-                self.pridajDoFormacie(pridanaJednotkaNepriatel)
-        pridanaJednotka.nastavNovyRozkaz(self.aktualnyRozkaz)
+        if jednotkaNaPridanie is not None:
+            self.pridajDoFormacie(jednotkaNaPridanie)
+
+    def spawnujJednotky(self):
+        aktualnyCas = time.time()
+        if len(self.zoznamJednotiekNaPridanieHrac) != 0:
+            if aktualnyCas - self.casSpawnuPoslednejJednotkyHrac >= self.casSpawnuJednotkyNaRade():
+                print("SPAWN")
+                jednotkaNaSpawn = self.zoznamJednotiekNaPridanieHrac[0]
+                self.zoznamJednotiekNaPridanieHrac.remove(jednotkaNaSpawn)
+                jednotkaNaSpawn.nastavNovyRozkaz(self.aktualnyRozkazHrac)
+                self.zoznamHracovychJednotiek.append(jednotkaNaSpawn)
+                self.casSpawnuPoslednejJednotkyHrac = time.time()
+
+        if len(self.zoznamJednotiekNaPridanieEnemy) != 0:
+            if aktualnyCas - self.casSpawnuPoslednejJednotkyEnemy >= self.casSpawnuJednotkyNaRade(False):
+                jednotkaNaSpawn = self.zoznamJednotiekNaPridanieEnemy[0]
+                self.zoznamJednotiekNaPridanieEnemy.remove(jednotkaNaSpawn)
+                jednotkaNaSpawn.nastavNovyRozkaz(self.aktualnyRozkazEnemy)
+                self.zoznamNepriatelJednotiek.append(jednotkaNaSpawn)
+                self.casSpawnuPoslednejJednotkyEnemy = time.time()
+
+    def casSpawnuJednotkyNaRade(self, hracova=True):
+        if hracova:
+            jednotkaNaSpawn = self.zoznamJednotiekNaPridanieHrac[0]
+        else:
+            jednotkaNaSpawn = self.zoznamJednotiekNaPridanieEnemy[0]
+
+        match jednotkaNaSpawn.typJednotky:
+            case "Kopac":
+                return DLZKA_SPAWNU_KOPACA
+            case "Meciar":
+                return DLZKA_SPAWNU_MECIARA
+            case "Kopijnik":
+                return DLZKA_SPAWNU_KOPIJNIKA
+
+    def zapisCasSpawnuAkPrvyNaSpawn(self, hracZoznam=True):
+        if hracZoznam and len(self.zoznamJednotiekNaPridanieHrac) == 0:
+            self.casSpawnuPoslednejJednotkyHrac = time.time()
+
+        if hracZoznam is False and len(self.zoznamJednotiekNaPridanieEnemy) == 0:
+            self.casSpawnuPoslednejJednotkyEnemy = time.time()
 
     def posunKameru(self, smerPosunutia):
         match smerPosunutia:
@@ -355,34 +445,56 @@ class HraView(arcade.View):
                 self.posunKamery = 335
 
     def nastavenieRozkazov(self, rozkaz):
-        self.aktualnyRozkaz = rozkaz
+        self.aktualnyRozkazHrac = rozkaz
         for hracovaJednotka in self.zoznamHracovychJednotiek:
             hracovaJednotka.nastavNovyRozkaz(rozkaz)
 
     def pauzniHru(self, neniPotreba):
         self.window.show_view(Menu.PauseMenu(self))
 
-    def getPocetKopacov(self):
+    def getPocetKopacov(self, hracovychKopacov=True):
         pocetKopacov = 0
-        for jednotkaHrac in self.zoznamHracovychJednotiek:
-            if isinstance(jednotkaHrac, jednotka.Kopac):
-                pocetKopacov += 1
-        return pocetKopacov
+        if hracovychKopacov:
+            for jednotkaHrac in self.zoznamHracovychJednotiek:
+                if isinstance(jednotkaHrac, jednotka.Kopac):
+                    pocetKopacov += 1
+            for jednotkaHrac in self.zoznamJednotiekNaPridanieHrac:
+                if isinstance(jednotkaHrac, jednotka.Kopac):
+                    pocetKopacov += 1
+            return pocetKopacov
+        else:
+            for jednotkaEnemy in self.zoznamNepriatelJednotiek:
+                if isinstance(jednotkaEnemy, jednotka.Kopac):
+                    pocetKopacov += 1
+            for jednotkaEnemy in self.zoznamJednotiekNaPridanieEnemy:
+                if isinstance(jednotkaEnemy, jednotka.Kopac):
+                    pocetKopacov += 1
+            return pocetKopacov
 
     def skontrolujPocetDovezenychVozikovZlata(self):
-        zlatoNaPridanie = 0
+        zlatoNaPridanieHrac = 0
         for kopac in self.zoznamHracovychJednotiek:
             if isinstance(kopac, jednotka.Kopac):
-                zlatoNaPridanie += int(kopac.pocetDovezenehoZlata)
+                zlatoNaPridanieHrac += int(kopac.pocetDovezenehoZlata)
                 kopac.pocetDovezenehoZlata = 0
-        self.pocetHracovhoZlata += int(zlatoNaPridanie)
+        self.pocetHracovhoZlata += int(zlatoNaPridanieHrac)
+
+        zlatoNaPridanieEnemy = 0
+        for kopac in self.zoznamNepriatelJednotiek:
+            if isinstance(kopac, jednotka.Kopac):
+                zlatoNaPridanieEnemy += int(kopac.pocetDovezenehoZlata)
+                kopac.pocetDovezenehoZlata = 0
+        self.pocetEnemyZlata += int(zlatoNaPridanieEnemy)
 
     def debugPanel(self):
         texturaPozadieTlacidiel = arcade.load_texture("TexturaMenus/spodnyPanel.png")
         arcade.draw_lrwh_rectangle_textured(0, 0, SIRKA_OBRAZOVKY_HRY, 40, texture=texturaPozadieTlacidiel)
-        text = (f"      Rychlost:           ({self.posunKamery:5.1f})"
-                f"      Scroll value:       ({self.posunKamery:5.1f})"
-                f"      Pozicia X Mys:      ({self.poziciaMyskyX:5.1f})"
-                f"      Pocet jednotiek:    ({self.getPocetHracovychJednotiek():})"
-                f"      Pocet Zlata: ({self.pocetHracovhoZlata:})")
+        text = (
+            f"      Zlato: {self.pocetHracovhoZlata}"
+            f"      Jednotky: {self.getPocetHracovychJednotiek()}"
+            + " " * 80 +#105
+            f"      Cas: {round(time.time() - self.casZapnutiaHry, 2)}"
+            f"      Zlato: {self.pocetEnemyZlata}"
+            f"      Jednotky: {self.getPocetEnemyJednotiek()}"
+        )
         arcade.draw_text(text, 10, 10, arcade.color.BLACK_BEAN, 20)

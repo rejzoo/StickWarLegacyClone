@@ -1,3 +1,5 @@
+import time
+
 import arcade
 import arcade.gui
 from gameHandler import HraView
@@ -98,4 +100,56 @@ class PauseMenu(arcade.View):
     def on_draw(self):
         self.clear()
         self.aktualnaHra.on_draw()
+        arcade.draw_text("Game is Paused", SIRKA_PAUSE_MENU / 2 - 175, 550, arcade.color.YELLOW, font_size=40, bold=True, font_name="Calibri")
+        self.manager.draw()
+
+
+SIRKA_END_VIEW = 700
+VYSKA_END_VIEW = 700
+
+class EndScreen(arcade.View):
+    def __init__(self, vitazHry, casZapnutiaHry):
+        super().__init__()
+
+        self.text = "You won!" if vitazHry == "Hrac" else "You lost!"
+        self.casHry = round(time.time() - casZapnutiaHry, 2)
+
+        self.manager = arcade.gui.UIManager()
+        self.texturaTlacidlo = arcade.load_texture("TexturaMenus/menuTlacidlo.png")
+        self.texturaTlacidloStlacene = arcade.load_texture("TexturaMenus/menuTlacidloStlacene.png")
+
+        menuButton = arcade.gui.UITextureButton(width=200, text="Main Menu", texture=self.texturaTlacidlo)
+        menuButton.texture_hovered = self.texturaTlacidloStlacene
+        quitButton = arcade.gui.UITextureButton(width=200, text="Quit Game", texture=self.texturaTlacidlo)
+        quitButton.texture_hovered = self.texturaTlacidloStlacene
+
+        @menuButton.event("on_click")
+        def on_click_startGame(event):
+            mainMenu = StartMenu()
+            self.window.show_view(mainMenu)
+
+        @quitButton.event("on_click")
+        def on_click_startGame(event):
+            arcade.close_window()
+
+        rozlozenie = arcade.gui.UIBoxLayout(vertical=True, space_between=30)
+        rozlozenie.add(menuButton)
+        rozlozenie.add(quitButton)
+        self.manager.add(arcade.gui.UIAnchorWidget(anchor_x="center", anchor_y="center", child=rozlozenie))
+
+    def on_hide_view(self):
+        self.manager.disable()
+
+    def on_show_view(self):
+        self.manager.enable()
+        self.window.set_size(SIRKA_END_VIEW, VYSKA_END_VIEW)
+        arcade.set_viewport(0, SIRKA_END_VIEW, 0, VYSKA_END_VIEW)
+        self.window.center_window()
+
+    def on_draw(self):
+        self.clear()
+        self.window.background_color = arcade.color.AERO_BLUE
+        arcade.draw_text(self.text, SIRKA_END_VIEW / 2 - 110, 550, arcade.color.BLACK, font_size=40, bold=True, font_name="Calibri")
+        arcade.draw_text(f"Time played: {self.casHry}s", SIRKA_END_VIEW / 2 - 190, 500, arcade.color.BLACK,
+                         font_size=40, bold=True, font_name="Calibri")
         self.manager.draw()
